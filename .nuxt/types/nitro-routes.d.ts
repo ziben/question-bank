@@ -12,6 +12,9 @@ declare module "nitropack/types" {
     '/api/questions/:id': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/questions/[id]').default>>>>
     }
+    '/api/questions/batch': {
+      'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/questions/batch.delete').default>>>>
+    }
     '/api/questions/export': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/questions/export').default>>>>
     }

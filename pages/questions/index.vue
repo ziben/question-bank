@@ -34,6 +34,10 @@ const questions = computed(() => data.value?.data || [])
 const isDeleting = ref<number | null>(null)
 const alert = useAlert()
 
+// 批量操作相关状态
+const selectedIds = ref<Set<number>>(new Set())
+const isBatchDeleting = ref(false)
+
 // 监听获取数据的错误
 watch(fetchError, (newError) => {
   if (newError) {
@@ -41,6 +45,24 @@ watch(fetchError, (newError) => {
   }
 })
 
+// 选择相关方法
+function toggleSelect(id: number) {
+  if (selectedIds.value.has(id)) {
+    selectedIds.value.delete(id)
+  } else {
+    selectedIds.value.add(id)
+  }
+}
+
+function selectAll() {
+  if (selectedIds.value.size === questions.value.length) {
+    selectedIds.value.clear()
+  } else {
+    selectedIds.value = new Set(questions.value.map(q => q.id))
+  }
+}
+
+// 删除相关方法
 async function deleteQuestion(id: number) {
   try {
     isDeleting.value = id
@@ -54,6 +76,34 @@ async function deleteQuestion(id: number) {
     alert.error('删除失败，请稍后重试')
   } finally {
     isDeleting.value = null
+  }
+}
+
+async function batchDelete() {
+  if (selectedIds.value.size === 0) {
+    alert.warning('请先选择要删除的题目')
+    return
+  }
+
+  const confirmDelete = window.confirm(`确定要删除选中的 ${selectedIds.value.size} 个题目吗？`)
+  if (!confirmDelete) return
+
+  try {
+    isBatchDeleting.value = true
+    await $fetch('/api/questions/batch', {
+      method: 'DELETE',
+      body: {
+        ids: Array.from(selectedIds.value)
+      }
+    })
+    alert.success(`成功删除 ${selectedIds.value.size} 个题目`)
+    selectedIds.value.clear()
+    refresh()
+  } catch (error) {
+    console.error('批量删除失败:', error)
+    alert.error('批量删除失败，请稍后重试')
+  } finally {
+    isBatchDeleting.value = false
   }
 }
 
@@ -72,128 +122,193 @@ function closePreview() {
 </script>
 
 <template>
-  <div>
-    <div class="flex justify-between items-center mb-8">
-      <h2 class="text-3xl font-bold tracking-tight">题库管理</h2>
-      <div class="flex gap-4">
-        <NuxtLink
-          to="/questions/import"
-          class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+  <div class="container mx-auto px-4 py-8">
+    <!-- 批量操作工具栏 -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center space-x-4">
+        <button
+          class="btn-secondary"
+          @click="selectAll"
         >
-          批量导入
-        </NuxtLink>
-        <NuxtLink
-          to="/questions/new"
-          class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          {{ selectedIds.size === questions.length ? '取消全选' : '全选' }}
+          <span class="text-sm text-gray-500 ml-2">
+            ({{ selectedIds.size }}/{{ questions.length }})
+          </span>
+        </button>
+        <button
+          v-if="selectedIds.size > 0"
+          class="btn-danger"
+          :disabled="isBatchDeleting"
+          @click="batchDelete"
         >
-          新建题目
-        </NuxtLink>
+          <span v-if="isBatchDeleting">
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+            正在删除...
+          </span>
+          <span v-else>
+            <i class="fas fa-trash-alt mr-2"></i>
+            批量删除
+          </span>
+        </button>
       </div>
-    </div>
-
-    <!-- 加载状态 -->
-    <div v-if="pending" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <NuxtLink
+        to="/questions/new"
+        class="btn-primary"
+      >
+        <i class="fas fa-plus mr-2"></i>
+        新建题目
+      </NuxtLink>
     </div>
 
     <!-- 题目列表 -->
-    <div v-else class="space-y-4">
-      <div v-for="question in questions" :key="question.id" class="flex items-center justify-between p-4 bg-white rounded-lg shadow">
-        <div class="flex-1 min-w-0">
-          <h3 class="text-lg font-medium truncate">{{ question.title }}</h3>
-          <div class="mt-1 flex items-center gap-2 text-sm text-gray-500">
-            <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-              {{ formatType(question.type) }}
-            </span>
-            <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
-              {{ formatDifficulty(question.difficulty) }}
-            </span>
-            <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="w-8 px-6 py-3">
+              <input
+                type="checkbox"
+                class="rounded border-gray-300"
+                :checked="selectedIds.size === questions.length"
+                :indeterminate="selectedIds.size > 0 && selectedIds.size < questions.length"
+                @change="selectAll"
+              >
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              标题
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              类型
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              难度
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              分类
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              创建时间
+            </th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              操作
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr
+            v-for="question in questions"
+            :key="question.id"
+            class="hover:bg-gray-50"
+          >
+            <td class="px-6 py-4 whitespace-nowrap">
+              <input
+                type="checkbox"
+                class="rounded border-gray-300"
+                :checked="selectedIds.has(question.id)"
+                @change="toggleSelect(question.id)"
+              >
+            </td>
+            <td class="px-6 py-4">
+              <div class="text-sm font-medium text-gray-900">
+                {{ question.title }}
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span
+                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                :class="{
+                  'bg-blue-100 text-blue-800': question.type === 'multiple_choice',
+                  'bg-green-100 text-green-800': question.type === 'true_false',
+                  'bg-purple-100 text-purple-800': question.type === 'essay'
+                }"
+              >
+                {{ formatType(question.type) }}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span
+                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                :class="{
+                  'bg-green-100 text-green-800': question.difficulty === 'easy',
+                  'bg-yellow-100 text-yellow-800': question.difficulty === 'medium',
+                  'bg-red-100 text-red-800': question.difficulty === 'hard'
+                }"
+              >
+                {{ formatDifficulty(question.difficulty) }}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
               {{ question.category.name }}
-            </span>
-            <span class="text-xs">{{ formatDate(question.createdAt) }}</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2 ml-4">
-          <button
-            @click="openPreview(question)"
-            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 w-9"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
-          </button>
-          <NuxtLink
-            :to="`/questions/${question.id}`"
-            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 w-9"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
-          </NuxtLink>
-          <button
-            @click="deleteQuestion(question.id)"
-            :disabled="isDeleting === question.id"
-            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 w-9"
-          >
-            <div v-if="isDeleting === question.id" class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
-          </button>
-        </div>
-      </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {{ formatDate(question.createdAt) }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+              <button
+                class="text-indigo-600 hover:text-indigo-900"
+                @click="openPreview(question)"
+              >
+                预览
+              </button>
+              <NuxtLink
+                :to="`/questions/${question.id}/edit`"
+                class="text-blue-600 hover:text-blue-900"
+              >
+                编辑
+              </NuxtLink>
+              <button
+                class="text-red-600 hover:text-red-900"
+                :disabled="isDeleting === question.id"
+                @click="deleteQuestion(question.id)"
+              >
+                <span v-if="isDeleting === question.id">
+                  <i class="fas fa-spinner fa-spin"></i>
+                </span>
+                <span v-else>删除</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- 预览对话框 -->
-    <div v-if="showPreview" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold">题目预览</h3>
+    <div
+      v-if="showPreview"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+      @click.self="closePreview"
+    >
+      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">
+            {{ previewQuestion?.title }}
+          </h3>
+          <div class="prose max-w-none">
+            <div class="mb-4">
+              <strong>题目内容：</strong>
+              <div class="mt-2">{{ previewQuestion?.content }}</div>
+            </div>
+            <div v-if="previewQuestion?.options" class="mb-4">
+              <strong>选项：</strong>
+              <div class="mt-2">{{ previewQuestion?.options }}</div>
+            </div>
+            <div class="mb-4">
+              <strong>答案：</strong>
+              <div class="mt-2">{{ previewQuestion?.answer }}</div>
+            </div>
+            <div v-if="previewQuestion?.explanation" class="mb-4">
+              <strong>解析：</strong>
+              <div class="mt-2">{{ previewQuestion?.explanation }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-6 py-3 flex justify-end">
           <button
+            class="btn-secondary"
             @click="closePreview"
-            class="text-gray-500 hover:text-gray-700"
           >
             关闭
           </button>
-        </div>
-        
-        <div v-if="previewQuestion" class="space-y-4">
-          <div>
-            <div class="font-medium text-gray-700">题目类型</div>
-            <div>{{ formatType(previewQuestion.type) }}</div>
-          </div>
-          
-          <div>
-            <div class="font-medium text-gray-700">难度</div>
-            <div>{{ formatDifficulty(previewQuestion.difficulty) }}</div>
-          </div>
-          
-          <div>
-            <div class="font-medium text-gray-700">分类</div>
-            <div>{{ previewQuestion.category?.name || '未分类' }}</div>
-          </div>
-          
-          <div>
-            <div class="font-medium text-gray-700">题目内容</div>
-            <div class="whitespace-pre-wrap">{{ previewQuestion.content }}</div>
-          </div>
-          
-          <template v-if="previewQuestion.type === 'multiple_choice'">
-            <div>
-              <div class="font-medium text-gray-700">选项</div>
-              <div class="whitespace-pre-wrap">{{ previewQuestion.options }}</div>
-            </div>
-          </template>
-          
-          <div>
-            <div class="font-medium text-gray-700">答案</div>
-            <div class="whitespace-pre-wrap">{{ previewQuestion.answer }}</div>
-          </div>
-          
-          <div v-if="previewQuestion.explanation">
-            <div class="font-medium text-gray-700">解析</div>
-            <div class="whitespace-pre-wrap">{{ previewQuestion.explanation }}</div>
-          </div>
-          
-          <div v-if="previewQuestion.tags">
-            <div class="font-medium text-gray-700">标签</div>
-            <div class="whitespace-pre-wrap">{{ previewQuestion.tags }}</div>
-          </div>
         </div>
       </div>
     </div>
