@@ -32,5 +32,7 @@ export { useAlert } from '../composables/useAlert';
 export { useError } from '../composables/useError';
 export { usePagination } from '../composables/usePagination';
 export { useToast } from '../composables/useToast';
+export { formatType, formatDifficulty, formatDate, formatFileSize, truncateText, slugify } from '../utils/format';
+export { isValidQuestionType, isValidDifficulty, validateQuestion, validateEmail, validatePassword } from '../utils/validation';
 export { useNuxtDevTools } from '../node_modules/@nuxt/devtools/dist/runtime/use-nuxt-devtools';
 export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composables';

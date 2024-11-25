@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { Question, PaginatedResponse } from '~/types/question'
+import { formatType, formatDifficulty, formatDate } from '~/utils/format'
+
 interface Question {
   id: number
   title: string
@@ -17,7 +20,7 @@ interface Question {
 }
 
 interface PaginatedResponse {
-  questions: Question[]
+  data: Question[]
   pagination: {
     page: number
     limit: number
@@ -26,8 +29,8 @@ interface PaginatedResponse {
   }
 }
 
-const { data, refresh, error: fetchError } = await useFetch<PaginatedResponse>('/api/questions')
-const questions = computed(() => data.value?.questions || [])
+const { data, refresh, error: fetchError } = await useFetch<PaginatedResponse<Question>>('/api/questions')
+const questions = computed(() => data.value?.data || [])
 const isDeleting = ref<number | null>(null)
 const alert = useAlert()
 
@@ -37,34 +40,6 @@ watch(fetchError, (newError) => {
     alert.error('获取题目列表失败', '错误')
   }
 })
-
-function formatType(type: string): string {
-  const typeMap: { [key: string]: string } = {
-    'multiple_choice': '选择题',
-    'true_false': '判断题',
-    'essay': '简答题'
-  }
-  return typeMap[type] || type
-}
-
-function formatDifficulty(difficulty: string): string {
-  const difficultyMap: { [key: string]: string } = {
-    'easy': '简单',
-    'medium': '中等',
-    'hard': '困难'
-  }
-  return difficultyMap[difficulty] || difficulty
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 
 async function deleteQuestion(id: number) {
   try {
