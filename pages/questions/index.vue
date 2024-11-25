@@ -26,9 +26,17 @@ interface PaginatedResponse {
   }
 }
 
-const { data, refresh, pending } = await useFetch<PaginatedResponse>('/api/questions')
+const { data, refresh, error: fetchError } = await useFetch<PaginatedResponse>('/api/questions')
 const questions = computed(() => data.value?.questions || [])
 const isDeleting = ref<number | null>(null)
+const alert = useAlert()
+
+// 监听获取数据的错误
+watch(fetchError, (newError) => {
+  if (newError) {
+    alert.error('获取题目列表失败', '错误')
+  }
+})
 
 function formatType(type: string): string {
   const typeMap: { [key: string]: string } = {
@@ -64,9 +72,11 @@ async function deleteQuestion(id: number) {
     await $fetch(`/api/questions/${id}`, {
       method: 'DELETE'
     })
+    alert.success('删除成功')
     refresh()
   } catch (error) {
     console.error('删除失败:', error)
+    alert.error('删除失败，请稍后重试')
   } finally {
     isDeleting.value = null
   }
