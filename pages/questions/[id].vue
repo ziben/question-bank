@@ -1,10 +1,24 @@
 <script setup lang="ts">
+const route = useRoute()
 const router = useRouter()
 
 interface Category {
   id: number
   name: string
   description: string | null
+}
+
+interface Question {
+  id: number
+  title: string
+  type: string
+  difficulty: string
+  categoryId: number
+  content: string
+  options: string | null
+  correctAnswer: string
+  explanation: string | null
+  tags: string | null
 }
 
 const formData = ref({
@@ -32,9 +46,26 @@ const difficulties = [
 ]
 
 const { data: categories } = await useFetch<Category[]>('/api/categories')
+const { data: question } = await useFetch<Question>(`/api/questions/${route.params.id}`)
+
+// 加载题目数据
+watchEffect(() => {
+  if (question.value) {
+    formData.value = {
+      title: question.value.title,
+      type: question.value.type,
+      difficulty: question.value.difficulty,
+      categoryId: question.value.categoryId,
+      content: question.value.content,
+      answer: question.value.correctAnswer,
+      options: question.value.options || '',
+      explanation: question.value.explanation || '',
+      tags: question.value.tags || ''
+    }
+  }
+})
 
 const showOptions = computed(() => formData.value.type === 'multiple_choice')
-
 const showPreview = ref(false)
 
 function formatType(type: string): string {
@@ -69,8 +100,8 @@ const selectedCategory = computed(() => {
 
 const handleSubmit = async () => {
   try {
-    await $fetch('/api/questions', {
-      method: 'POST',
+    await $fetch(`/api/questions/${route.params.id}`, {
+      method: 'PUT',
       body: {
         title: formData.value.title,
         type: formData.value.type,
@@ -93,7 +124,7 @@ const handleSubmit = async () => {
 <template>
   <div>
     <div class="flex items-center justify-between mb-8">
-      <h2 class="text-3xl font-bold tracking-tight">新建题目</h2>
+      <h2 class="text-3xl font-bold tracking-tight">编辑题目</h2>
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6">

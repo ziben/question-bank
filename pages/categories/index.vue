@@ -2,28 +2,36 @@
 interface Category {
   id: number
   name: string
-  description: string
-  questionCount: number
+  description: string | null
   createdAt: string
+  updatedAt: string
+  _count: {
+    questions: number
+  }
 }
 
-// 模拟数据
-const categories = ref<Category[]>([
-  {
-    id: 1,
-    name: '前端开发',
-    description: '包含HTML、CSS、JavaScript等前端技术相关的题目',
-    questionCount: 25,
-    createdAt: '2023-10-20'
-  },
-  {
-    id: 2,
-    name: '后端开发',
-    description: '包含服务器端编程、数据库等后端技术相关的题目',
-    questionCount: 18,
-    createdAt: '2023-10-21'
+const { data: categories, refresh } = await useFetch<Category[]>('/api/categories')
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+async function deleteCategory(id: number) {
+  try {
+    await $fetch(`/api/categories/${id}`, {
+      method: 'DELETE'
+    })
+    refresh()
+  } catch (error) {
+    console.error('删除失败:', error)
   }
-])
+}
 </script>
 
 <template>
@@ -48,23 +56,38 @@ const categories = ref<Category[]>([
           <h3 class="text-lg font-semibold">{{ category.name }}</h3>
           <div class="flex gap-2">
             <NuxtLink
-              :to="'/categories/' + category.id"
+              :to="`/categories/${category.id}`"
               class="text-sm text-primary hover:underline"
             >
               编辑
             </NuxtLink>
+            <NuxtLink
+              :to="`/categories/${category.id}/view`"
+              class="text-sm text-primary hover:underline"
+            >
+              查看
+            </NuxtLink>
             <button
+              @click="deleteCategory(category.id)"
               class="text-sm text-destructive hover:underline"
             >
               删除
             </button>
           </div>
         </div>
-        <p class="text-muted-foreground mb-4">{{ category.description }}</p>
+        <p class="text-muted-foreground mb-4">{{ category.description || '暂无描述' }}</p>
         <div class="flex justify-between text-sm text-muted-foreground">
-          <span>题目数量: {{ category.questionCount }}</span>
-          <span>创建时间: {{ category.createdAt }}</span>
+          <span>题目数量: {{ category._count.questions }}</span>
+          <span>创建时间: {{ formatDate(category.createdAt) }}</span>
         </div>
+      </div>
+
+      <!-- 空状态提示 -->
+      <div
+        v-if="!categories?.length"
+        class="col-span-full p-8 text-center text-muted-foreground"
+      >
+        暂无分类数据，点击右上角"新建分类"按钮创建第一个分类。
       </div>
     </div>
   </div>

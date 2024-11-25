@@ -9,18 +9,24 @@ export default defineEventHandler(async (event) => {
   // 按难度统计
   const byDifficulty = await prisma.question.groupBy({
     by: ['difficulty'],
-    _count: true
+    _count: {
+      _all: true
+    }
   })
 
   // 按类型统计
   const byType = await prisma.question.groupBy({
     by: ['type'],
-    _count: true
+    _count: {
+      _all: true
+    }
   })
 
   // 按分类统计
   const byCategory = await prisma.category.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
       _count: {
         select: {
           questions: true
@@ -40,27 +46,17 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const [questionCount, categoryCount] = await Promise.all([
-    prisma.question.count(),
-    prisma.category.count()
-  ])
-
   return {
     totalQuestions,
-    byDifficulty: byDifficulty.reduce((acc, curr) => ({
-      ...acc,
-      [curr.difficulty]: curr._count
-    }), {}),
-    byType: byType.reduce((acc, curr) => ({
-      ...acc,
-      [curr.type]: curr._count
-    }), {}),
-    byCategory: byCategory.reduce((acc, curr) => ({
-      ...acc,
-      [curr.id]: curr._count.questions
-    }), {}),
-    recentQuestions,
-    questionCount,
-    categoryCount
+    byDifficulty: byDifficulty.map(item => ({
+      difficulty: item.difficulty,
+      _count: item._count._all
+    })),
+    byType: byType.map(item => ({
+      type: item.type,
+      _count: item._count._all
+    })),
+    byCategory,
+    recentQuestions
   }
 })

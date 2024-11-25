@@ -1,15 +1,27 @@
 <script setup lang="ts">
+const route = useRoute()
 const router = useRouter()
 
+interface Category {
+  id: number
+  name: string
+  description: string | null
+  _count?: {
+    questions: number
+  }
+}
+
+const { data: category } = await useFetch<Category>(`/api/categories/${route.params.id}`)
+
 const formData = ref({
-  name: '',
-  description: ''
+  name: category.value?.name || '',
+  description: category.value?.description || ''
 })
 
 const handleSubmit = async () => {
   try {
-    await $fetch('/api/categories', {
-      method: 'POST',
+    await $fetch(`/api/categories/${route.params.id}`, {
+      method: 'PUT',
       body: formData.value
     })
     router.push('/categories')
@@ -22,17 +34,14 @@ const handleSubmit = async () => {
 <template>
   <div>
     <div class="flex items-center justify-between mb-8">
-      <h2 class="text-3xl font-bold tracking-tight">新建分类</h2>
+      <h2 class="text-3xl font-bold tracking-tight">编辑分类</h2>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-6 max-w-2xl">
+    <form @submit.prevent="handleSubmit" class="space-y-6">
       <div class="grid gap-4">
         <div class="space-y-2">
-          <label
-            class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            for="name"
-          >
-            分类名称
+          <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" for="name">
+            名称
           </label>
           <input
             id="name"
@@ -44,11 +53,8 @@ const handleSubmit = async () => {
         </div>
 
         <div class="space-y-2">
-          <label
-            class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            for="description"
-          >
-            分类描述
+          <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" for="description">
+            描述
           </label>
           <textarea
             id="description"

@@ -31,5 +31,4 @@ export { injectHead, useHead, useSeoMeta, useHeadSafe, useServerHead, useServerS
 export { useError } from '../composables/useError';
 export { usePagination } from '../composables/usePagination';
 export { useToast } from '../composables/useToast';
-export { useNuxtDevTools } from '../node_modules/@nuxt/devtools/dist/runtime/use-nuxt-devtools';
 export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composables';
