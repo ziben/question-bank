@@ -2,33 +2,6 @@
 import type { Question, PaginatedResponse } from '~/types/question'
 import { formatType, formatDifficulty, formatDate } from '~/utils/format'
 
-interface Question {
-  id: number
-  title: string
-  type: string
-  difficulty: string
-  category: {
-    id: number
-    name: string
-  }
-  createdAt: string
-  content: string
-  options: string | null
-  answer: string
-  explanation: string | null
-  tags: string | null
-}
-
-interface PaginatedResponse {
-  data: Question[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-}
-
 const { data, refresh, error: fetchError } = await useFetch<PaginatedResponse<Question>>('/api/questions')
 const questions = computed(() => data.value?.data || [])
 const isDeleting = ref<number | null>(null)
