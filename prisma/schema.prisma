@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  email         String    @unique
+  password      String
+  name          String?
+  role          String    @default("USER") // "USER", "EDITOR", "ADMIN"
+  questions     Question[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  questions   Question[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Question {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  type        String    // e.g., "multiple_choice", "true_false", "essay"
+  difficulty  String    // e.g., "easy", "medium", "hard"
+  options     String?   // JSON string for multiple choice options
+  answer      String    // For multiple choice: correct option index, for others: answer text
+  explanation String?   // Explanation for the answer
+  tags        String?   // JSON array of tags
+  category    Category  @relation(fields: [categoryId], references: [id])
+  categoryId  Int
+  createdBy   User      @relation(fields: [userId], references: [id])
+  userId      Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
