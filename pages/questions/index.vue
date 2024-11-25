@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import type { Question, PaginatedResponse } from '~/types/question'
-import { formatType, formatDifficulty, formatDate } from '~/utils/format'
 
-const { data, refresh, error: fetchError } = await useFetch<PaginatedResponse<Question>>('/api/questions')
-const questions = computed(() => data.value?.data || [])
+const route = useRoute()
+const router = useRouter()
+
+const { data, refresh, error: fetchError } = await useFetch<PaginatedResponse<Question>>('/api/questions', {
+  query: route.query
+})
+const questions = computed(() => data.value?.questions || [])
+const pagination = computed(() => data.value?.pagination)
 const isDeleting = ref<number | null>(null)
 const alert = useAlert()
 
-// 批量操作相关状态
-const selectedIds = ref<Set<number>>(new Set())
-const isBatchDeleting = ref(false)
+// 获取路由实例
 
 // 监听获取数据的错误
 watch(fetchError, (newError) => {
@@ -17,6 +20,11 @@ watch(fetchError, (newError) => {
     alert.error('获取题目列表失败', '错误')
   }
 })
+
+// 监听路由变化，刷新数据
+watch(() => route.query, () => {
+  refresh()
+}, { deep: true })
 
 // 选择相关方法
 function toggleSelect(id: number) {
@@ -92,6 +100,10 @@ function closePreview() {
   showPreview.value = false
   previewQuestion.value = null
 }
+
+// 批量操作相关状态
+const selectedIds = ref<Set<number>>(new Set())
+const isBatchDeleting = ref(false)
 </script>
 
 <template>
@@ -99,21 +111,13 @@ function closePreview() {
     <!-- 批量操作工具栏 -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center space-x-4">
-        <button
-          class="btn-secondary"
-          @click="selectAll"
-        >
+        <button class="btn-secondary" @click="selectAll">
           {{ selectedIds.size === questions.length ? '取消全选' : '全选' }}
           <span class="text-sm text-gray-500 ml-2">
             ({{ selectedIds.size }}/{{ questions.length }})
           </span>
         </button>
-        <button
-          v-if="selectedIds.size > 0"
-          class="btn-danger"
-          :disabled="isBatchDeleting"
-          @click="batchDelete"
-        >
+        <button v-if="selectedIds.size > 0" class="btn-danger" :disabled="isBatchDeleting" @click="batchDelete">
           <span v-if="isBatchDeleting">
             <i class="fas fa-spinner fa-spin mr-2"></i>
             正在删除...
@@ -124,10 +128,7 @@ function closePreview() {
           </span>
         </button>
       </div>
-      <NuxtLink
-        to="/questions/new"
-        class="btn-primary"
-      >
+      <NuxtLink to="/questions/new" class="btn-primary">
         <i class="fas fa-plus mr-2"></i>
         新建题目
       </NuxtLink>
@@ -139,13 +140,8 @@ function closePreview() {
         <thead class="bg-gray-50">
           <tr>
             <th class="w-8 px-6 py-3">
-              <input
-                type="checkbox"
-                class="rounded border-gray-300"
-                :checked="selectedIds.size === questions.length"
-                :indeterminate="selectedIds.size > 0 && selectedIds.size < questions.length"
-                @change="selectAll"
-              >
+              <input type="checkbox" class="rounded border-gray-300" :checked="selectedIds.size === questions.length"
+                :indeterminate="selectedIds.size > 0 && selectedIds.size < questions.length" @change="selectAll">
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               标题
@@ -168,18 +164,10 @@ function closePreview() {
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr
-            v-for="question in questions"
-            :key="question.id"
-            class="hover:bg-gray-50"
-          >
+          <tr v-for="question in questions" :key="question.id" class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap">
-              <input
-                type="checkbox"
-                class="rounded border-gray-300"
-                :checked="selectedIds.has(question.id)"
-                @change="toggleSelect(question.id)"
-              >
+              <input type="checkbox" class="rounded border-gray-300" :checked="selectedIds.has(question.id)"
+                @change="toggleSelect(question.id)">
             </td>
             <td class="px-6 py-4">
               <div class="text-sm font-medium text-gray-900">
@@ -187,26 +175,20 @@ function closePreview() {
               </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <span
-                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                :class="{
-                  'bg-blue-100 text-blue-800': question.type === 'multiple_choice',
-                  'bg-green-100 text-green-800': question.type === 'true_false',
-                  'bg-purple-100 text-purple-800': question.type === 'essay'
-                }"
-              >
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="{
+                'bg-blue-100 text-blue-800': question.type === 'multiple_choice',
+                'bg-green-100 text-green-800': question.type === 'true_false',
+                'bg-purple-100 text-purple-800': question.type === 'essay'
+              }">
                 {{ formatType(question.type) }}
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <span
-                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                :class="{
-                  'bg-green-100 text-green-800': question.difficulty === 'easy',
-                  'bg-yellow-100 text-yellow-800': question.difficulty === 'medium',
-                  'bg-red-100 text-red-800': question.difficulty === 'hard'
-                }"
-              >
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="{
+                'bg-green-100 text-green-800': question.difficulty === 'easy',
+                'bg-yellow-100 text-yellow-800': question.difficulty === 'medium',
+                'bg-red-100 text-red-800': question.difficulty === 'hard'
+              }">
                 {{ formatDifficulty(question.difficulty) }}
               </span>
             </td>
@@ -217,23 +199,14 @@ function closePreview() {
               {{ formatDate(question.createdAt) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-              <button
-                class="text-indigo-600 hover:text-indigo-900"
-                @click="openPreview(question)"
-              >
+              <button class="text-indigo-600 hover:text-indigo-900" @click="openPreview(question)">
                 预览
               </button>
-              <NuxtLink
-                :to="`/questions/${question.id}/edit`"
-                class="text-blue-600 hover:text-blue-900"
-              >
+              <NuxtLink :to="`/questions/${question.id}`" class="text-blue-600 hover:text-blue-900">
                 编辑
               </NuxtLink>
-              <button
-                class="text-red-600 hover:text-red-900"
-                :disabled="isDeleting === question.id"
-                @click="deleteQuestion(question.id)"
-              >
+              <button class="text-red-600 hover:text-red-900" :disabled="isDeleting === question.id"
+                @click="deleteQuestion(question.id)">
                 <span v-if="isDeleting === question.id">
                   <i class="fas fa-spinner fa-spin"></i>
                 </span>
@@ -243,14 +216,29 @@ function closePreview() {
           </tr>
         </tbody>
       </table>
+      <!-- 分页 -->
+      <div v-if="pagination" class="flex justify-between items-center p-4 border-t">
+        <div class="text-sm text-gray-700">
+          共 {{ pagination.total }} 条记录，第 {{ pagination.page }}/{{ pagination.totalPages }} 页
+        </div>
+        <div class="flex space-x-2">
+          <button class="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50"
+            :disabled="pagination.page <= 1"
+            @click="router.push({ query: { ...route.query, page: pagination.page - 1 } })">
+            上一页
+          </button>
+          <button class="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50"
+            :disabled="pagination.page >= pagination.totalPages"
+            @click="router.push({ query: { ...route.query, page: pagination.page + 1 } })">
+            下一页
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- 预览对话框 -->
-    <div
-      v-if="showPreview"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
-      @click.self="closePreview"
-    >
+    <div v-if="showPreview" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+      @click.self="closePreview">
       <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">
@@ -276,10 +264,7 @@ function closePreview() {
           </div>
         </div>
         <div class="bg-gray-50 px-6 py-3 flex justify-end">
-          <button
-            class="btn-secondary"
-            @click="closePreview"
-          >
+          <button class="btn-secondary" @click="closePreview">
             关闭
           </button>
         </div>
