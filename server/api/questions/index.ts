@@ -37,7 +37,14 @@ export default defineEventHandler(async (event: H3Event) => {
         prisma.question.findMany({
           where,
           include: {
-            category: true
+            category: true,
+            createdBy: {
+              select: {
+                id: true,
+                username: true,
+                name: true
+              }
+            }
           },
           skip: (page - 1) * limit,
           take: limit,
@@ -60,21 +67,55 @@ export default defineEventHandler(async (event: H3Event) => {
 
     case 'POST':
       const body = await readBody(event)
+      
+      // Verify category exists
+      const categoryExists = await prisma.category.findUnique({
+        where: { id: body.categoryId }
+      })
+      if (!categoryExists) {
+        throw createError({
+          statusCode: 400,
+          message: '分类不存在'
+        })
+      }
+
+      // Verify user exists
+      const userExists = await prisma.user.findUnique({
+        where: { id: body.userId }
+      })
+      if (!userExists) {
+        throw createError({
+          statusCode: 400,
+          message: '用户不存在'
+        })
+      }
+
       const newQuestion = await prisma.question.create({
         data: {
           title: body.title,
           content: body.content,
           difficulty: body.difficulty,
-          categoryId: body.categoryId,
           options: body.options,
           answer: body.correctAnswer,
           explanation: body.explanation,
           tags: body.tags,
           type: body.type,
-          userId: body.userId
+          category: {
+            connect: { id: body.categoryId }
+          },
+          createdBy: {
+            connect: { id: body.userId }
+          }
         },
         include: {
-          category: true
+          category: true,
+          createdBy: {
+            select: {
+              id: true,
+              username: true,
+              name: true
+            }
+          }
         }
       })
       return newQuestion

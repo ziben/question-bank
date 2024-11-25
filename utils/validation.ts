@@ -1,4 +1,4 @@
-import { QuestionType, DifficultyLevel } from '~/types/question'
+import type { QuestionType, DifficultyLevel } from '~/types/question'
 
 export function isValidQuestionType(type: string): type is QuestionType {
   return ['multiple_choice', 'true_false', 'essay'].includes(type)

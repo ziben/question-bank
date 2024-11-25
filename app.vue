@@ -6,7 +6,6 @@
         <NuxtPage />
       </NuxtLayout>
     </AlertProvider>
-    <vue-toast />
   </div>
 </template>
 

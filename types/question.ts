@@ -20,7 +20,7 @@ export interface Question {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[]
+  questions: T[]
   pagination: {
     page: number
     limit: number

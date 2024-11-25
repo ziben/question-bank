@@ -1,4 +1,5 @@
-import { QuestionType, DifficultyLevel, QuestionTypeLabels, DifficultyLevelLabels } from '~/types/question'
+import type { QuestionType, DifficultyLevel } from '~/types/question'
+import { QuestionTypeLabels, DifficultyLevelLabels } from '~/types/question'
 
 export function formatType(type: QuestionType): string {
   return QuestionTypeLabels[type] || type
