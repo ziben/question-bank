@@ -5,7 +5,8 @@ export default defineNuxtConfig({
 
   // 模块配置
   modules: [
-    '@nuxtjs/tailwindcss'
+    '@nuxtjs/tailwindcss',
+    '@pinia/nuxt'
   ],
 
   // CSS 配置

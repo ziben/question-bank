@@ -1,114 +1,141 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- 顶部导航栏 -->
-    <header class="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-sm">
-      <div class="container mx-auto px-4">
-        <div class="flex h-16 items-center justify-between">
-          <!-- Logo -->
-          <NuxtLink to="/" class="flex items-center space-x-2">
-            <span class="text-xl font-bold text-gray-900">题库管理系统</span>
-          </NuxtLink>
+  <div class="min-h-screen bg-gray-100">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex">
+            <!-- Logo -->
+            <div class="flex-shrink-0 flex items-center">
+              <NuxtLink to="/" class="text-xl font-bold text-gray-900">
+                题库系统
+              </NuxtLink>
+            </div>
+            <!-- 导航链接 -->
+            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <NuxtLink
+                to="/"
+                class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[
+                  $route.path === '/'
+                    ? 'border-blue-500 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ]"
+              >
+                首页
+              </NuxtLink>
+              <NuxtLink
+                to="/questions"
+                class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[
+                  $route.path.startsWith('/questions')
+                    ? 'border-blue-500 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ]"
+              >
+                题库管理
+              </NuxtLink>
+              <NuxtLink
+                to="/categories"
+                class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[
+                  $route.path.startsWith('/categories')
+                    ? 'border-blue-500 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ]"
+              >
+                分类管理
+              </NuxtLink>
+              <NuxtLink
+                to="/statistics"
+                class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[
+                  $route.path.startsWith('/statistics')
+                    ? 'border-blue-500 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ]"
+              >
+                统计分析
+              </NuxtLink>
+              <NuxtLink
+                v-if="authStore.isAdmin"
+                to="/admin/users"
+                class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[
+                  $route.path.startsWith('/admin/users')
+                    ? 'border-blue-500 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ]"
+              >
+                用户管理
+              </NuxtLink>
+            </div>
+          </div>
 
-          <!-- 桌面端导航 -->
-          <nav class="hidden md:flex items-center space-x-8">
-            <NuxtLink 
-              v-for="item in navItems" 
-              :key="item.path"
-              :to="item.path"
-              class="text-gray-600 hover:text-primary transition-colors duration-200"
-              active-class="text-primary font-medium"
-            >
-              {{ item.name }}
-            </NuxtLink>
-          </nav>
-
-          <!-- 移动端菜单按钮 -->
-          <button 
-            class="md:hidden p-2 rounded-md hover:bg-gray-100"
-            @click="isMobileMenuOpen = !isMobileMenuOpen"
-          >
-            <span class="sr-only">打开菜单</span>
-            <svg
-              class="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                v-if="!isMobileMenuOpen"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-              <path
-                v-else
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- 移动端导航菜单 -->
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="transform -translate-y-2 opacity-0"
-        enter-to-class="transform translate-y-0 opacity-100"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="transform translate-y-0 opacity-100"
-        leave-to-class="transform -translate-y-2 opacity-0"
-      >
-        <div v-if="isMobileMenuOpen" class="md:hidden">
-          <div class="border-t px-4 py-2 space-y-1">
-            <NuxtLink
-              v-for="item in navItems"
-              :key="item.path"
-              :to="item.path"
-              class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-primary hover:bg-gray-50"
-              active-class="text-primary bg-primary/5"
-              @click="isMobileMenuOpen = false"
-            >
-              {{ item.name }}
-            </NuxtLink>
+          <!-- 用户菜单 -->
+          <div class="hidden sm:ml-6 sm:flex sm:items-center">
+            <div class="ml-3 relative">
+              <div v-if="authStore.isAuthenticated">
+                <button
+                  type="button"
+                  class="bg-white flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  @click="showUserMenu = !showUserMenu"
+                >
+                  <span class="sr-only">打开用户菜单</span>
+                  <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    {{ authStore.user?.username.charAt(0).toUpperCase() }}
+                  </div>
+                </button>
+              </div>
+              <div
+                v-if="showUserMenu"
+                class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+              >
+                <div class="px-4 py-2 text-sm text-gray-700">
+                  {{ authStore.user?.username }}
+                </div>
+                <div class="border-t border-gray-100"></div>
+                <a
+                  href="#"
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  @click.prevent="handleLogout"
+                >
+                  退出登录
+                </a>
+              </div>
+            </div>
           </div>
         </div>
-      </Transition>
-    </header>
-
-    <!-- 主要内容区域 -->
-    <main class="container mx-auto px-4 py-8">
-      <slot />
-    </main>
-
-    <!-- 页脚 -->
-    <footer class="bg-white border-t mt-auto">
-      <div class="container mx-auto px-4 py-6">
-        <p class="text-center text-gray-500 text-sm">
-          {{ new Date().getFullYear() }} 题库管理系统. All rights reserved.
-        </p>
       </div>
-    </footer>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main>
+      <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <slot />
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-const isMobileMenuOpen = ref(false)
+import { ref } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+import { useRouter } from 'nuxt/app'
 
-// 导航项配置
-const navItems = [
-  { name: '首页', path: '/' },
-  { name: '题库', path: '/questions' },
-  { name: '分类', path: '/categories' },
-  { name: '统计', path: '/statistics' }
-]
+const router = useRouter()
+const authStore = useAuthStore()
+const showUserMenu = ref(false)
 
-// 监听路由变化，关闭移动端菜单
-watch(useRoute(), () => {
-  isMobileMenuOpen.value = false
+const handleLogout = async () => {
+  await authStore.logout()
+  showUserMenu.value = false
+  router.push('/login')
+}
+
+// 在组件加载时检查认证状态
+onMounted(async () => {
+  await authStore.checkAuth()
 })
 </script>
 

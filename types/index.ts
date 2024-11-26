@@ -1,3 +1,5 @@
+import type { NuxtApp } from "#app"
+
 export interface User {
   id: number
   username: string
