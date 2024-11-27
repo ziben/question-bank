@@ -51,68 +51,123 @@
     </div>
 
     <!-- 创建/编辑用户模态框 -->
-    <Modal v-model:show="showCreateModal" :title="isEditing ? '编辑用户' : '创建用户'">
-      <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">用户名</label>
-          <input v-model="form.username" type="text" required
-                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">邮箱</label>
-          <input v-model="form.email" type="email" required
-                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">密码</label>
-          <input v-model="form.password" type="password" :required="!isEditing"
-                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">角色</label>
-          <select v-model="form.role"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-            <option value="USER">用户</option>
-            <option value="EDITOR">编辑</option>
-            <option value="ADMIN">管理员</option>
-          </select>
-        </div>
-        <div class="flex justify-end space-x-3">
-          <button type="button" @click="showCreateModal = false"
-                  class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">
-            取消
-          </button>
-          <button type="submit"
-                  class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-            {{ isEditing ? '保存' : '创建' }}
-          </button>
-        </div>
-      </form>
-    </Modal>
+    <Dialog :open="showCreateModal" @update:open="(value) => showCreateModal = value">
+      <DialogContent class="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{{ isEditing ? '编辑用户' : '创建用户' }}</DialogTitle>
+          <DialogDescription>
+            填写以下信息{{ isEditing ? '修改' : '创建' }}用户。
+          </DialogDescription>
+        </DialogHeader>
+        <form @submit.prevent="handleSubmit" class="space-y-4">
+          <FormField name="username">
+            <FormItem>
+              <FormLabel>用户名</FormLabel>
+              <FormControl>
+                <Input v-model="form.username" type="text" required />
+              </FormControl>
+            </FormItem>
+          </FormField>
+          
+          <FormField name="email">
+            <FormItem>
+              <FormLabel>邮箱</FormLabel>
+              <FormControl>
+                <Input v-model="form.email" type="email" required />
+              </FormControl>
+            </FormItem>
+          </FormField>
+          
+          <FormField name="password">
+            <FormItem>
+              <FormLabel>密码</FormLabel>
+              <FormControl>
+                <Input v-model="form.password" type="password" :required="!isEditing" />
+              </FormControl>
+            </FormItem>
+          </FormField>
+          
+          <FormField name="role">
+            <FormItem>
+              <FormLabel>角色</FormLabel>
+              <Select v-model="form.role">
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择用户角色" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="USER">用户</SelectItem>
+                  <SelectItem value="EDITOR">编辑</SelectItem>
+                  <SelectItem value="ADMIN">管理员</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormItem>
+          </FormField>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" @click="showCreateModal = false">
+              取消
+            </Button>
+            <Button type="submit">
+              {{ isEditing ? '保存' : '创建' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
 
     <!-- 删除确认模态框 -->
-    <Modal v-model:show="showDeleteModal" title="确认删除">
-      <div class="space-y-4">
-        <p>确定要删除用户 "{{ selectedUser?.username }}" 吗？此操作无法撤销。</p>
+    <Dialog :open="showDeleteModal" @update:open="showDeleteModal = false">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>确认删除</DialogTitle>
+          <DialogDescription>
+            确定要删除用户 "{{ selectedUser?.username }}" 吗？此操作无法撤销。
+          </DialogDescription>
+        </DialogHeader>
         <div class="flex justify-end space-x-3">
-          <button @click="showDeleteModal = false"
-                  class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">
+          <Button variant="outline" @click="showDeleteModal = false">
             取消
-          </button>
-          <button @click="deleteUser"
-                  class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
+          </Button>
+          <Button variant="destructive" @click="deleteUser">
             删除
-          </button>
+          </Button>
         </div>
-      </div>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import dayjs from 'dayjs'
-import Modal from '~/components/ui/Modal.vue'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface User {
   id: number

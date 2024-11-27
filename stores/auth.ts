@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useFetch } from 'nuxt/app'
+import { useRouter } from 'nuxt/app'
 import type { FetchError } from 'ofetch'
 
 export interface User {
@@ -30,6 +31,12 @@ export interface AuthState {
 // Token 存储的key
 const TOKEN_KEY = 'auth_token'
 
+// 开发环境下的默认管理员账号
+const DEV_ADMIN = {
+  email: 'admin@example.com',
+  password: 'admin123'
+}
+
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     user: null,
@@ -50,14 +57,18 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     // 保存token到localStorage
     saveToken(token: string) {
-      localStorage.setItem(TOKEN_KEY, token)
       this.token = token
+      if (process.client) {
+        localStorage.setItem(TOKEN_KEY, token)
+      }
     },
 
     // 清除token
     clearToken() {
-      localStorage.removeItem(TOKEN_KEY)
       this.token = null
+      if (process.client) {
+        localStorage.removeItem(TOKEN_KEY)
+      }
     },
 
     // 重置状态
@@ -73,24 +84,24 @@ export const useAuthStore = defineStore('auth', {
     async login(form: LoginForm) {
       this.loading = true
       this.error = null
-      
-      try {       
-        const { data: response } = await useFetch<LoginResponse>('/api/auth/login', {
+
+      try {
+        const { data } = await useFetch<LoginResponse>('/api/auth/login', {
           method: 'POST',
-          body: form,
-          headers: this.authHeader
+          body: form
         })
 
-        if (response.value) {
-          const { token, user } = response.value
+        if (data.value) {
+          const { token, user } = data.value
           this.saveToken(token)
           this.user = user
+          return true
         }
+        return false
       } catch (error) {
         const fetchError = error as FetchError
-        this.error = fetchError.message
-        this.resetState()
-        throw error
+        this.error = fetchError.message || '登录失败'
+        return false
       } finally {
         this.loading = false
       }
@@ -98,34 +109,45 @@ export const useAuthStore = defineStore('auth', {
 
     // 退出登录
     async logout() {
-      this.loading = true
-      this.error = null
-
       try {
         await useFetch('/api/auth/logout', {
           method: 'POST',
           headers: this.authHeader
         })
       } catch (error) {
-        const fetchError = error as FetchError
-        this.error = fetchError.message
+        console.error('Logout error:', error)
       } finally {
-        this.loading = false
         this.resetState()
       }
     },
 
     // 检查认证状态
     async checkAuth() {
-      const token = localStorage.getItem(TOKEN_KEY)
-      if (!token) {
-        this.resetState()
+      // 只在客户端检查 token
+      if (process.client) {
+        const token = localStorage.getItem(TOKEN_KEY)
+        
+        if (!token) {
+          // 开发环境下自动登录
+          if (process.dev) {
+            try {
+              await this.login(DEV_ADMIN)
+              return true
+            } catch (error) {
+              console.error('Auto login failed:', error)
+            }
+          }
+          return false
+        }
+
+        this.token = token
+      }
+
+      if (!this.token) {
         return false
       }
 
       this.loading = true
-      this.error = null
-      this.token = token
 
       try {
         const { data: user } = await useFetch<User>('/api/auth/me', {
@@ -134,11 +156,13 @@ export const useAuthStore = defineStore('auth', {
         
         if (user.value) {
           this.user = user.value
+          return true
+        } else {
+          this.resetState()
+          return false
         }
-        return true
       } catch (error) {
-        const fetchError = error as FetchError
-        this.error = fetchError.message
+        console.error('Check auth error:', error)
         this.resetState()
         return false
       } finally {
@@ -148,11 +172,10 @@ export const useAuthStore = defineStore('auth', {
 
     // 初始化认证状态
     async init() {
-      const token = localStorage.getItem(TOKEN_KEY)
-      if (token) {
-        return this.checkAuth()
-      }
-      return false
+      // 避免重复初始化
+      if (this.loading) return
+
+      await this.checkAuth()
     }
   }
 })

@@ -6,9 +6,30 @@ export default defineNuxtConfig({
   // 模块配置
   modules: [
     '@nuxtjs/tailwindcss',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    'shadcn-nuxt',
+    'nuxt-icon',
+    '@nuxtjs/google-fonts'
   ],
-
+  shadcn: {
+    /**
+     * Prefix for all the imported component
+     */
+    prefix: '',
+    /**
+     * Directory that the component lives in.
+     * @default "./components/ui"
+     */
+    componentDir: './components/ui'
+  },
+  // Google Fonts 配置
+  googleFonts: {
+    families: {
+      'Inter': [100, 200, 300, 400, 500, 600, 700, 800, 900],
+    },
+    display: 'swap',
+    download: true,
+  },
   // CSS 配置
   css: ['~/assets/css/main.css'],
 
