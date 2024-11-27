@@ -14,6 +14,8 @@ export default defineEventHandler(async (event: H3Event) => {
       const search = query.search as string
       const category = parseInt(query.category as string)
       const difficulty = query.difficulty as string
+      const sort = query.sort as string || 'createdAt'
+      const order = query.order as 'asc' | 'desc' || 'desc'
 
       const where: any = {}
 
@@ -21,7 +23,7 @@ export default defineEventHandler(async (event: H3Event) => {
         where.OR = [
           { title: { contains: search } },
           { content: { contains: search } },
-          { tags: { has: search } }
+          { tags: { contains: search } }
         ]
       }
 
@@ -49,7 +51,7 @@ export default defineEventHandler(async (event: H3Event) => {
           skip: (page - 1) * limit,
           take: limit,
           orderBy: {
-            createdAt: 'desc'
+            [sort]: order
           }
         }),
         prisma.question.count({ where })

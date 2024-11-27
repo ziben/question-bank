@@ -28,20 +28,60 @@ model Category {
   updatedAt   DateTime  @updatedAt
 }
 
+// 新增科目模型
+model Subject {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique // 如：数学、语文、英语
+  description String?
+  questions   Question[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// 新增年级模型
+model Grade {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique // 如：一年级、初一、高一
+  description String?
+  questions   Question[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// 新增题目来源模型
+model Source {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique // 来源名称
+  type        String    // 类型：SCHOOL（学校）, INSTITUTION（机构）, EXAM（考试）
+  description String?
+  questions   Question[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model Question {
   id          Int       @id @default(autoincrement())
   title       String
   content     String
   type        String    // e.g., "multiple_choice", "true_false", "essay"
-  difficulty  String    // e.g., "easy", "medium", "hard"
+  difficulty  Int       @default(3) // 1-5 星
   options     String?   // JSON string for multiple choice options
   answer      String    // For multiple choice: correct option index, for others: answer text
   explanation String?   // Explanation for the answer
   tags        String?   // JSON array of tags
+  
+  // 关联字段
   category    Category  @relation(fields: [categoryId], references: [id])
   categoryId  Int
+  subject     Subject   @relation(fields: [subjectId], references: [id])
+  subjectId   Int
+  grade       Grade     @relation(fields: [gradeId], references: [id])
+  gradeId     Int
+  source      Source    @relation(fields: [sourceId], references: [id])
+  sourceId    Int
   createdBy   User      @relation(fields: [userId], references: [id])
   userId      Int
+  
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

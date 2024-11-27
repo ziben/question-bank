@@ -1,5 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  future: {
+    compatibilityVersion: 4,
+  },
+  
   // 开发工具
   devtools: { enabled: true },
 
@@ -9,19 +13,16 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     'shadcn-nuxt',
     'nuxt-icon',
-    '@nuxtjs/google-fonts'
+    '@nuxtjs/google-fonts',
+    '@nuxtjs/color-mode'
   ],
+
+  // Shadcn UI 配置
   shadcn: {
-    /**
-     * Prefix for all the imported component
-     */
     prefix: '',
-    /**
-     * Directory that the component lives in.
-     * @default "./components/ui"
-     */
     componentDir: './components/ui'
   },
+
   // Google Fonts 配置
   googleFonts: {
     families: {
@@ -30,6 +31,14 @@ export default defineNuxtConfig({
     display: 'swap',
     download: true,
   },
+
+  // 颜色模式配置
+  colorMode: {
+    preference: 'system',
+    fallback: 'light',
+    classSuffix: '',
+  },
+
   // CSS 配置
   css: ['~/assets/css/main.css'],
 
@@ -56,7 +65,10 @@ export default defineNuxtConfig({
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'description', content: '现代化的题库管理系统' }
-      ]
+      ],
+      htmlAttrs: {
+        lang: 'zh-CN'
+      }
     }
   },
 
@@ -77,6 +89,19 @@ export default defineNuxtConfig({
 
   // Nitro 配置
   nitro: {
-    compressPublicAssets: true
+    compressPublicAssets: true,
+    routeRules: {
+      '/api/**': { cors: true },
+      '/sw.js': { static: false }
+    }
+  },
+
+  // 实验性功能
+  experimental: {
+    asyncContext: true,
+    componentIslands: true,
+    payloadExtraction: true,
+    typedPages: true,
+    viewTransition: true
   }
 })

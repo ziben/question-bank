@@ -99,6 +99,21 @@ const navigationItems: NavigationItem[] = [
     icon: Frame
   },
   {
+    name: '科目管理',
+    path: '/admin/subjects',
+    icon: BookOpen
+  },
+  {
+    name: '年级管理',
+    path: '/admin/grades',
+    icon: Users
+  },
+  {
+    name: '来源管理',
+    path: '/admin/sources',
+    icon: Map
+  },
+  {
     name: '分类管理',
     path: '/categories',
     icon: CreditCard
