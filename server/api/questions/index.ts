@@ -105,6 +105,15 @@ export default defineEventHandler(async (event: H3Event) => {
           category: {
             connect: { id: body.categoryId }
           },
+          subject: {
+            connect: { id: body.subjectId }
+          },
+          grade: {
+            connect: { id: body.gradeId }
+          },
+          source: {
+            connect: { id: body.sourceId }
+          },
           createdBy: {
             connect: { id: body.userId }
           }

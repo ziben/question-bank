@@ -1,12 +1,12 @@
-import type { QuestionType, DifficultyLevel } from '~/types/question'
-import { QuestionTypeLabels, DifficultyLevelLabels } from '~/types/question'
+import type { DifficultyLevel, QuestionType } from '~/types'
+import { DifficultyLevelLabels, QuestionTypeLabels } from '~/types'
 
 export function formatType(type: QuestionType): string {
   return QuestionTypeLabels[type] || type
 }
 
 export function formatDifficulty(difficulty: DifficultyLevel): string {
-  return DifficultyLevelLabels[difficulty] || difficulty
+  return DifficultyLevelLabels[difficulty] || String(difficulty)
 }
 
 export function formatDate(dateStr: string, options: Intl.DateTimeFormatOptions = {

@@ -2,52 +2,44 @@
   <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">用户管理</h1>
-      <button @click="showCreateModal = true" 
-              class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+      <button @click="showCreateModal = true" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
         添加用户
+      </button>
+      <button @click="exportAllData" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+        导出全部数据
       </button>
     </div>
 
     <!-- 用户列表 -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户名</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">邮箱</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="user in users" :key="user.id">
-            <td class="px-6 py-4 whitespace-nowrap">{{ user.username }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ user.email }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                    :class="{
-                      'bg-green-100 text-green-800': user.role === 'ADMIN',
-                      'bg-blue-100 text-blue-800': user.role === 'EDITOR',
-                      'bg-gray-100 text-gray-800': user.role === 'USER'
-                    }">
-                {{ user.role }}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(user.createdAt) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <button @click="editUser(user)" 
-                      class="text-indigo-600 hover:text-indigo-900 mr-3">
-                编辑
-              </button>
-              <button @click="confirmDelete(user)" 
-                      class="text-red-600 hover:text-red-900">
-                删除
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <DataTable
+        :columns="columns"
+        :data="users"
+        :loading="loading"
+        :selected-items="selectedUsers"
+        @update:selected-items="selectedUsers = $event"
+        :show-batch-actions="true"
+        :batch-actions="batchActions"
+        @apply-filters="applyFilters"
+        @reset-filters="resetFilters"
+      >
+        <template #cell-role="{ item }">
+          {{ formatRole(item.role) }}
+        </template>
+        <template #cell-createdAt="{ item }">
+          {{ new Date(item.createdAt).toLocaleString() }}
+        </template>
+        <template #cell-actions="{ item }">
+          <div class="flex items-center space-x-2">
+            <Button variant="outline" size="sm" @click="() => editUser(item)">
+              <Pencil class="h-4 w-4" />
+            </Button>
+            <Button variant="destructive" size="sm" @click="() => confirmDelete(item)">
+              <Trash class="h-4 w-4" />
+            </Button>
+          </div>
+        </template>
+      </DataTable>
     </div>
 
     <!-- 创建/编辑用户模态框 -->
@@ -68,7 +60,7 @@
               </FormControl>
             </FormItem>
           </FormField>
-          
+
           <FormField name="email">
             <FormItem>
               <FormLabel>邮箱</FormLabel>
@@ -77,7 +69,7 @@
               </FormControl>
             </FormItem>
           </FormField>
-          
+
           <FormField name="password">
             <FormItem>
               <FormLabel>密码</FormLabel>
@@ -86,7 +78,7 @@
               </FormControl>
             </FormItem>
           </FormField>
-          
+
           <FormField name="role">
             <FormItem>
               <FormLabel>角色</FormLabel>
@@ -141,16 +133,18 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import dayjs from 'dayjs'
-import { Button } from '@/components/ui/button'
+import type { User } from '~/types'
+import type { Permission } from '~/types/permission'
+import DataTable, { type BatchAction } from '@/components/ui/data-table.vue'
+import { usePermission } from '~/composables/usePermission'
+import { useLogger } from '~/composables/useLogger'
+import { useExport } from '@/composables/useExport'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -158,132 +152,260 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
-interface User {
-  id: number
-  username: string
-  email: string
-  role: 'USER' | 'EDITOR' | 'ADMIN'
-  createdAt: string
-  updatedAt: string
-}
-
-interface UserForm {
-  username: string
-  email: string
-  password: string
-  role: User['role']
-}
-
-const users = ref<User[]>([])
+const { createLog } = useLogger()
+const { exportToExcel } = useExport()
+// 状态管理
+const loading = ref(false)
+const selectedUsers = ref<User[]>([])
+const showBatchActionMenu = ref(false)
+const showFilters = ref(false)
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
 const isEditing = ref(false)
 const selectedUser = ref<User | null>(null)
-
-const form = reactive<UserForm>({
+const users = ref<User[]>([])
+const alert = useAlert()
+// 表单状态
+const form = reactive({
   username: '',
   email: '',
-  password: '',
-  role: 'USER'
+  role: '',
+  password: ''
 })
 
-// 获取用户列表
-const fetchUsers = async (): Promise<void> => {
-  try {
-    const response = await $fetch<User[]>('/api/admin/users')
-    users.value = response
-  } catch (error) {
-    console.error('Error fetching users:', error)
-  }
-}
+// 筛选条件
+const filters = reactive({
+  role: '',
+  startDate: '',
+  endDate: '',
+  status: ''
+})
 
-// 创建或更新用户
-const handleSubmit = async (): Promise<void> => {
+// 表格列配置
+const columns = [
+  { key: 'username', title: '用户名', sortable: true },
+  { key: 'email', title: '邮箱' },
+  { key: 'role', title: '角色', sortable: true },
+  { key: 'createdAt', title: '创建时间', sortable: true },
+  { key: 'status', title: '状态', sortable: true },
+  { key: 'actions', title: '操作' }
+]
+
+// 处理批量删除
+async function handleBatchDelete() {
+  if (!selectedUsers.value.length) return
+
+  const confirmed = confirm(`确定要删除选中的 ${selectedUsers.value.length} 个用户吗？此操作不可撤销。`)
+
+  if (!confirmed) return
+
+  loading.value = true
   try {
-    if (isEditing.value && selectedUser.value) {
-      await $fetch(`/api/admin/users/${selectedUser.value.id}`, {
-        method: 'PUT',
-        body: form
-      })
-    } else {
-      await $fetch('/api/admin/users', {
-        method: 'POST',
-        body: form
-      })
-    }
+    await $fetch('/api/users/batch', {
+      method: 'DELETE',
+      body: { ids: selectedUsers.value.map(user => user.id) }
+    })
+
+    await createLog('user.delete', `批量删除用户`, `删除了 ${selectedUsers.value.length} 个用户`)
+    alert.success('删除成功')
+    selectedUsers.value = []
     await fetchUsers()
-    showCreateModal.value = false
-    resetForm()
   } catch (error) {
-    console.error('Error saving user:', error)
+    alert.error('删除失败')
+  } finally {
+    loading.value = false
   }
 }
 
-// 编辑用户
-const editUser = (user: User): void => {
-  selectedUser.value = user
-  isEditing.value = true
-  Object.assign(form, {
-    username: user.username,
-    email: user.email,
-    role: user.role,
-    password: ''
-  })
-  showCreateModal.value = true
+// 处理导出选中数据
+async function handleExportSelected() {
+  const headers = {
+    username: '用户名',
+    email: '邮箱',
+    role: '角色',
+    createdAt: '创建时间',
+    status: '状态'
+  }
+
+  const data = selectedUsers.value.map(user => ({
+    ...user,
+    createdAt: new Date(user.createdAt).toLocaleString(),
+    role: formatRole(user.role)
+  }))
+
+  await exportToExcel(data, '用户数据')
+  await createLog('user.export', '导出选中用户数据', `导出了 ${data.length} 条用户数据`)
+  alert.success('导出成功')
 }
 
-// 确认删除
-const confirmDelete = (user: User): void => {
-  selectedUser.value = user
-  showDeleteModal.value = true
+// 处理批量更新角色
+async function handleBatchUpdateRole() {
+  return
+}
+
+// 批量操作选项
+const batchActions : BatchAction[] = [
+  {
+    label: '批量删除',
+    action: handleBatchDelete,
+    permission: 'user:delete',
+    variant: 'destructive'
+  },
+  {
+    label: '导出选中',
+    action: handleExportSelected,
+    permission: 'user:export'
+  },
+  {
+    label: '批量更新角色',
+    action: handleBatchUpdateRole,
+    permission: 'user:update'
+  }
+]
+
+// 处理表单提交
+const handleSubmit = async () => {
+  try {
+    loading.value = true
+    const data = { ...form }
+
+    if (isEditing.value && selectedUser.value) {
+      await $fetch(`/api/users/${selectedUser.value.id}`, {
+        method: 'PUT',
+        body: data
+      })
+      await createLog('user.update', `更新用户 ${selectedUser.value.username}`)
+    } else {
+      await $fetch('/api/users', {
+        method: 'POST',
+        body: data
+      })
+      await createLog('user.create', `创建用户 ${data.username}`)
+    }
+
+    showCreateModal.value = false
+    await fetchUsers()
+  } catch (error) {
+    console.error('Failed to submit form:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 // 删除用户
-const deleteUser = async (): Promise<void> => {
+const deleteUser = async () => {
+  if (!selectedUser.value) return
+
   try {
-    if (!selectedUser.value) return
-    
-    await $fetch(`/api/admin/users/${selectedUser.value.id}`, {
+    loading.value = true
+    await $fetch(`/api/users/${selectedUser.value.id}`, {
       method: 'DELETE'
     })
-    await fetchUsers()
+    await createLog('user.delete', `删除用户 ${selectedUser.value.username}`)
     showDeleteModal.value = false
-    selectedUser.value = null
+    await fetchUsers()
   } catch (error) {
-    console.error('Error deleting user:', error)
+    console.error('Failed to delete user:', error)
+  } finally {
+    loading.value = false
   }
 }
 
-// 重置表单
-const resetForm = (): void => {
-  Object.assign(form, {
-    username: '',
-    email: '',
-    password: '',
-    role: 'USER' as const
-  })
-  isEditing.value = false
-  selectedUser.value = null
-}
-
-// 格式化日期
-const formatDate = (date: string): string => {
-  return dayjs(date).format('YYYY-MM-DD HH:mm')
-}
-
-// 初始加载
-onMounted(() => {
+// 应用筛选
+const applyFilters = () => {
+  currentPage.value = 1
   fetchUsers()
-})
+}
+
+// 重置筛选
+const resetFilters = () => {
+  Object.assign(filters, {
+    role: '',
+    startDate: '',
+    endDate: '',
+    status: ''
+  })
+  applyFilters()
+}
+
+// 导出全部数据
+const exportAllData = async () => {
+  loading.value = true
+  try {
+    const { users } = await $fetch<{ users: User[] }>('/api/users/export')
+    const headers = {
+      username: '用户名',
+      email: '邮箱',
+      role: '角色',
+      createdAt: '创建时间',
+      status: '状态'
+    }
+
+    const data = users.map(user => ({
+      ...user,
+      createdAt: new Date(user.createdAt).toLocaleString(),
+      role: formatRole(user.role)
+    }))
+
+    await exportToExcel(data, '用户数据')
+    await createLog('user.export', '导出全部用户数据', `导出了 ${data.length} 条用户数据`)
+    alert.success('导出成功')
+  } catch (error) {
+    alert.error('导出失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const searchQuery = ref('')
+
+// 获取用户列表
+const fetchUsers = async () => {
+  loading.value = true
+  try {
+    const response = await $fetch<{ users: User[], total: number }>('/api/users', {
+      query: {
+        page: currentPage.value,
+        limit: pageSize.value,
+        ...filters,
+        search: searchQuery.value
+      }
+    })
+    users.value = response.users
+    total.value = response.total
+  } catch (error) {
+    alert.error('获取用户列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+
+const formatRole = (role: string) => {
+  const roleMap: Record<string, string> = {
+    'ADMIN': '管理员',
+    'USER': '普通用户',
+    'EDITOR': '编辑'
+  }
+  return roleMap[role] || role
+}
+
+const editUser = (user: User) => {
+  isEditing.value = true
+  selectedUser.value = user
+  Object.assign(form, user)
+  showCreateModal.value = true
+}
+
+const confirmDelete = (user: User) => {
+  selectedUser.value = user
+  showDeleteModal.value = true
+}
 </script>

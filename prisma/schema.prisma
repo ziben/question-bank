@@ -13,8 +13,40 @@ model User {
   email         String    @unique
   password      String
   name          String?
-  role          String    @default("USER") // "USER", "EDITOR", "ADMIN"
+  role          String    @default("USER") // "USER" | "ADMIN"
   questions     Question[]
+  roles         UserRole[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Role {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique
+  description   String?
+  permissions   Permission[]
+  users         UserRole[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model UserRole {
+  id            Int       @id @default(autoincrement())
+  user          User      @relation(fields: [userId], references: [id])
+  userId        Int
+  role          Role      @relation(fields: [roleId], references: [id])
+  roleId        Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, roleId])
+}
+
+model Permission {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique  // e.g., "user.create", "question.read"
+  description   String?
+  roles         Role[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -28,7 +60,6 @@ model Category {
   updatedAt   DateTime  @updatedAt
 }
 
-// 新增科目模型
 model Subject {
   id          Int       @id @default(autoincrement())
   name        String    @unique // 如：数学、语文、英语
@@ -38,7 +69,6 @@ model Subject {
   updatedAt   DateTime  @updatedAt
 }
 
-// 新增年级模型
 model Grade {
   id          Int       @id @default(autoincrement())
   name        String    @unique // 如：一年级、初一、高一
@@ -48,7 +78,6 @@ model Grade {
   updatedAt   DateTime  @updatedAt
 }
 
-// 新增题目来源模型
 model Source {
   id          Int       @id @default(autoincrement())
   name        String    @unique // 来源名称
@@ -63,7 +92,7 @@ model Question {
   id          Int       @id @default(autoincrement())
   title       String
   content     String
-  type        String    // e.g., "multiple_choice", "true_false", "essay"
+  type        String    // "multiple_choice" | "true_false" | "essay"
   difficulty  Int       @default(3) // 1-5 星
   options     String?   // JSON string for multiple choice options
   answer      String    // For multiple choice: correct option index, for others: answer text

@@ -1,52 +1,104 @@
 import type { NuxtApp } from "#app"
+import type { Role } from "./permission"
 
-export interface User {
+// Base interfaces
+interface BaseEntity {
   id: number
+  createdAt: string
+  updatedAt: string
+}
+
+interface BaseNamedEntity extends BaseEntity {
+  name: string
+  description: string | null
+}
+
+// User types
+export interface User extends BaseEntity {
   username: string
   email: string
   password: string
-  createdAt: string
-  updatedAt: string
+  role: 'ADMIN' | 'USER'
+  roles: Role[]
 }
 
-export interface Category {
-  id: number
-  name: string
-  description: string
+// Question related types
+export type QuestionType = 'multiple_choice' | 'true_false' | 'essay'
+export type DifficultyLevel = 1 | 2 | 3 | 4 | 5
+
+export const QuestionTypeLabels: Record<QuestionType, string> = {
+  'multiple_choice': '选择题',
+  'true_false': '判断题',
+  'essay': '简答题'
+}
+
+export const DifficultyLevelLabels: Record<DifficultyLevel, string> = {
+  1: '★',
+  2: '★★',
+  3: '★★★',
+  4: '★★★★',
+  5: '★★★★★'
+}
+
+export interface Category extends BaseNamedEntity {
   questionCount: number
-  createdAt: string
-  updatedAt: string
 }
 
-export interface Question {
-  id: number
+export interface Subject extends BaseNamedEntity {}
+export interface Grade extends BaseNamedEntity {}
+export interface Source extends BaseNamedEntity {}
+
+export interface Question extends BaseEntity {
   title: string
   content: string
+  type: QuestionType
+  difficulty: DifficultyLevel
+  options?: string[]
   answer: string
-  type: 'single' | 'multiple' | 'text' | 'essay'
-  difficulty: 'easy' | 'medium' | 'hard'
-  categoryId: number
-  category?: Category
-  createdBy: number
-  createdAt: string
-  updatedAt: string
+  explanation?: string
   tags?: string[]
+  categoryId: number
+  subjectId: number
+  gradeId: number
+  sourceId: number
+  category?: Category
+  subject?: Subject
+  grade?: Grade
+  source?: Source
+  createdBy: number
 }
 
+// Form types
+export interface QuestionFormData {
+  title: string
+  content: string
+  type: QuestionType
+  difficulty: DifficultyLevel
+  options: string[]
+  answer: string
+  explanation: string
+  tags: string[]
+  categoryId: number
+  subjectId: number
+  gradeId: number
+  sourceId: number
+}
+
+// Pagination types
+export interface PaginatedResponse<T> {
+  questions: T[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
+// Statistics types
 export interface QuestionStats {
   totalQuestions: number
-  byDifficulty: {
-    easy: number
-    medium: number
-    hard: number
-  }
-  byType: {
-    single: number
-    multiple: number
-    text: number
-    essay: number
-  }
-  byCategory: {
-    [key: number]: number
-  }
+  byDifficulty: Record<DifficultyLevel, number>
+  byType: Record<QuestionType, number>
+  byCategory: Record<number, number>
 }

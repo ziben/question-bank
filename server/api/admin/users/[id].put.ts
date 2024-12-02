@@ -4,11 +4,11 @@ import { hashPassword } from '~/server/utils/auth'
 const prisma = new PrismaClient()
 
 export default defineEventHandler(async (event) => {
-  const id = event.context.params?.id ?? ''
+  const id = event.context.params?.id ? parseInt(event.context.params.id, 10) : null
   const body = await readBody(event)
   const { username, email, password, role } = body
 
-  if (isNaN(parseInt(id))) {
+  if (typeof id !== 'number' || isNaN(id)) {
     throw createError({
       statusCode: 400,
       message: 'Invalid ID'
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     where: {
       username,
       NOT: {
-        id: parseInt(id)
+        id: id
       }
     }
   })
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     where: {
       email,
       NOT: {
-        id: parseInt(id)
+        id: id
       }
     }
   })
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = await prisma.user.update({
-    where: { id: parseInt(id) },
+    where: { id: id },
     data: updateData,
     select: {
       id: true,

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const router = useRouter()
-
+const params = route.params as { id: string }
 interface Category {
   id: number
   name: string
@@ -11,7 +11,7 @@ interface Category {
   }
 }
 
-const { data: category } = await useFetch<Category>(`/api/categories/${route.params.id}`)
+const { data: category } = await useFetch<Category>(`/api/categories/${params.id}`)
 
 const formData = ref({
   name: category.value?.name || '',
@@ -20,7 +20,7 @@ const formData = ref({
 
 const handleSubmit = async () => {
   try {
-    await $fetch(`/api/categories/${route.params.id}`, {
+    await $fetch(`/api/categories/${params.id}`, {
       method: 'PUT',
       body: formData.value
     })

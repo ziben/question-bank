@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { TagInput } from '@/components/ui/tag-input'
+import { TagsInput } from '@/components/ui/tags-input'
+import type { Category, Question, QuestionType, DifficultyLevel } from '@/types'
+import type { Subject, Grade, Source } from '@/types'
 
 const props = defineProps<{
   initialData?: any
@@ -20,8 +22,8 @@ const emit = defineEmits<{
 const formData = ref({
   title: '',
   content: '',
-  type: 'multiple_choice',
-  difficulty: 3,
+  type: 'multiple_choice' as QuestionType,
+  difficulty: 3 as DifficultyLevel,
   options: ['', '', '', ''],
   answer: '',
   explanation: '',
@@ -34,10 +36,24 @@ const formData = ref({
 })
 
 // 加载分类、科目、年级和来源数据
-const { data: categories } = await useFetch('/api/categories')
-const { data: subjects } = await useFetch('/api/subjects')
-const { data: grades } = await useFetch('/api/grades')
-const { data: sources } = await useFetch('/api/sources')
+const categories = ref<Category[]>([])
+const subjects = ref<Subject[]>([])
+const grades = ref<Grade[]>([])
+const sources = ref<Source[]>([])
+
+onMounted(async () => {
+  const { data: categoriesData } = await useFetch<Category[]>('/api/categories')
+  categories.value = categoriesData.value || []
+
+  const { data: subjectsData } = await useFetch<Subject[]>('/api/subjects')
+  subjects.value = subjectsData.value || []
+
+  const { data: gradesData } = await useFetch<Grade[]>('/api/grades')
+  grades.value = gradesData.value || []
+
+  const { data: sourcesData } = await useFetch<Source[]>('/api/sources')
+  sources.value = sourcesData.value || []
+})
 
 // 题目类型选项
 const questionTypes = [
@@ -78,7 +94,7 @@ const handleSubmit = () => {
 
   // 如果是选择题，验证选项
   if (formData.value.type === 'multiple_choice') {
-    if (formData.value.options.some(opt => !opt)) {
+    if (formData.value.options.some((opt: any) => !opt)) {
       alert('请填写所有选项')
       return
     }
@@ -90,7 +106,7 @@ const handleSubmit = () => {
 
   emit('submit', {
     ...formData.value,
-    difficulty: parseInt(formData.value.difficulty),
+    difficulty: formData.value.difficulty,
     categoryId: parseInt(formData.value.categoryId),
     subjectId: parseInt(formData.value.subjectId),
     gradeId: parseInt(formData.value.gradeId),
@@ -131,7 +147,7 @@ const handleSubmit = () => {
             <SelectValue placeholder="选择分类" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="category in categories" :key="category.id" :value="category.id">
+            <SelectItem v-for="category in categories" :key="category.id" :value="String(category.id)">
               {{ category.name }}
             </SelectItem>
           </SelectContent>
@@ -144,7 +160,7 @@ const handleSubmit = () => {
             <SelectValue placeholder="选择难度" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="level in difficultyLevels" :key="level.value" :value="level.value">
+            <SelectItem v-for="level in difficultyLevels" :key="level.value" :value="String(level.value)">
               {{ level.label }}
             </SelectItem>
           </SelectContent>
@@ -161,7 +177,7 @@ const handleSubmit = () => {
             <SelectValue placeholder="选择科目" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="subject in subjects" :key="subject.id" :value="subject.id">
+            <SelectItem v-for="subject in subjects" :key="subject.id" :value="String(subject.id)">
               {{ subject.name }}
             </SelectItem>
           </SelectContent>
@@ -174,7 +190,7 @@ const handleSubmit = () => {
             <SelectValue placeholder="选择年级" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="grade in grades" :key="grade.id" :value="grade.id">
+            <SelectItem v-for="grade in grades" :key="grade.id" :value="String(grade.id)">
               {{ grade.name }}
             </SelectItem>
           </SelectContent>
@@ -187,7 +203,7 @@ const handleSubmit = () => {
             <SelectValue placeholder="选择来源" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="source in sources" :key="source.id" :value="source.id">
+            <SelectItem v-for="source in sources" :key="source.id" :value="String(source.id)">
               {{ source.name }}
             </SelectItem>
           </SelectContent>
@@ -222,7 +238,7 @@ const handleSubmit = () => {
             <SelectValue placeholder="选择正确答案" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="(_, index) in formData.options" :key="index" :value="index">
+            <SelectItem v-for="(_, index) in formData.options" :key="index" :value="String(index)">
               选项 {{ index + 1 }}
             </SelectItem>
           </SelectContent>
@@ -244,7 +260,7 @@ const handleSubmit = () => {
     <!-- 标签 -->
     <div class="space-y-2">
       <label class="text-sm font-medium">标签</label>
-      <TagInput v-model="formData.tags" placeholder="输入标签，按回车添加" />
+      <TagsInput v-model="formData.tags" placeholder="输入标签，按回车添加" />
     </div>
 
     <!-- 操作按钮 -->

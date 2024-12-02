@@ -4,7 +4,8 @@
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" class="group py-4">
-            <div class="flex aspect-square size-10 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
+            <div
+              class="flex aspect-square size-10 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
               <Icon name="heroicons:academic-cap" class="size-6 text-primary" />
             </div>
             <div class="grid flex-1 text-left text-sm leading-tight">
@@ -80,8 +81,8 @@
 </template>
 
 <script setup lang="ts">
-import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarMenu, SidebarProvider } from '@/components/ui/sidebar'
-import { User, Settings, LogOut, ChevronsUpDown, Frame, BookOpen, CreditCard, Map, Users } from 'lucide-vue-next'
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
+import { BookOpen, ChevronsUpDown, CreditCard, Frame, LogOut, Map, Settings, User, Users } from 'lucide-vue-next';
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -117,11 +118,6 @@ const navigationItems: NavigationItem[] = [
     name: '分类管理',
     path: '/categories',
     icon: CreditCard
-  },
-  {
-    name: '考试管理',
-    path: '/exams',
-    icon: BookOpen
   },
   {
     name: '统计分析',

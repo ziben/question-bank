@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import type { DifficultyLevel } from '~/types';
+
+// Add route type definition
+interface RouteParams {
+  id: string
+}
 const route = useRoute()
+// Type assertion for route params
+const params = route.params as RouteParams
 const router = useRouter()
 
 interface Category {
@@ -12,7 +20,7 @@ interface Question {
   id: number
   title: string
   type: string
-  difficulty: string
+  difficulty: number
   categoryId: number
   content: string
   options: string | null
@@ -23,9 +31,9 @@ interface Question {
 
 const formData = ref({
   title: '',
-  type: 'essay',
-  difficulty: 'easy',
-  categoryId: 0,
+  type: 'multiple_choice',
+  difficulty: 3 as DifficultyLevel,
+  categoryId: '',
   content: '',
   answer: '',
   options: '',
@@ -40,13 +48,13 @@ const types = [
 ]
 
 const difficulties = [
-  { value: 'easy', label: '简单' },
-  { value: 'medium', label: '中等' },
-  { value: 'hard', label: '困难' }
+  { value: '1', label: '简单' },
+  { value: '2', label: '中等' },
+  { value: '3', label: '困难' }
 ]
 
 const { data: categories } = await useFetch<Category[]>('/api/categories')
-const { data: question } = await useFetch<Question>(`/api/questions/${route.params.id}`)
+const { data: question } = await useFetch<Question>(`/api/questions/${params.id}`)
 
 // 加载题目数据
 watchEffect(() => {
@@ -54,8 +62,8 @@ watchEffect(() => {
     formData.value = {
       title: question.value.title,
       type: question.value.type,
-      difficulty: question.value.difficulty,
-      categoryId: question.value.categoryId,
+      difficulty: question.value.difficulty as DifficultyLevel,
+      categoryId: String(question.value.categoryId),
       content: question.value.content,
       answer: question.value.correctAnswer,
       options: question.value.options || '',
@@ -79,9 +87,9 @@ function formatType(type: string): string {
 
 function formatDifficulty(difficulty: string): string {
   const difficultyMap: { [key: string]: string } = {
-    'easy': '简单',
-    'medium': '中等',
-    'hard': '困难'
+    '1': '简单',
+    '2': '中等',
+    '3': '困难'
   }
   return difficultyMap[difficulty] || difficulty
 }
@@ -95,18 +103,18 @@ function closePreview() {
 }
 
 const selectedCategory = computed(() => {
-  return categories.value?.find(c => c.id === formData.value.categoryId)
+  return categories.value?.find(c => c.id === Number(formData.value.categoryId)) ?? undefined
 })
 
 const handleSubmit = async () => {
   try {
-    await $fetch(`/api/questions/${route.params.id}`, {
+    await $fetch(`/api/questions/${params.id}`, {
       method: 'PUT',
       body: {
         title: formData.value.title,
         type: formData.value.type,
-        difficulty: formData.value.difficulty,
-        categoryId: formData.value.categoryId,
+        difficulty: Number(formData.value.difficulty),
+        categoryId: Number(formData.value.categoryId),
         content: formData.value.content,
         options: formData.value.options,
         correctAnswer: formData.value.answer,
@@ -179,7 +187,7 @@ const handleSubmit = async () => {
               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               required
             >
-              <option value="0" disabled>请选择分类</option>
+              <option value="" disabled>请选择分类</option>
               <option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option>
             </select>
           </div>
@@ -298,7 +306,7 @@ const handleSubmit = async () => {
           
           <div>
             <div class="font-medium text-gray-700">难度</div>
-            <div>{{ formatDifficulty(formData.difficulty) }}</div>
+            <div>{{ formatDifficulty(formData.difficulty.toString()) }}</div>
           </div>
           
           <div>

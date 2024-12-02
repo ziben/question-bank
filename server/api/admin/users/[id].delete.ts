@@ -3,8 +3,9 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 export default defineEventHandler(async (event) => {
-  const id = parseInt(event.context.params?.id ?? '')
-  if (isNaN(id)) {
+  const id = event.context.params?.id ? parseInt(event.context.params.id, 10) : null
+  
+  if (typeof id !== 'number' || isNaN(id)) {
     throw createError({
       statusCode: 400,
       message: 'Invalid ID'

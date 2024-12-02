@@ -1,5 +1,4 @@
 import { useToast as useVueToast } from 'vue-toastification'
-import type { ToastInterface } from 'vue-toastification'
 
 export function useToast() {
   const toast = useVueToast()

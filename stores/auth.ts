@@ -2,13 +2,7 @@ import { defineStore } from 'pinia'
 import { useFetch } from 'nuxt/app'
 import { useRouter } from 'nuxt/app'
 import type { FetchError } from 'ofetch'
-
-export interface User {
-  id: number
-  username: string
-  email: string
-  role: 'admin' | 'editor' | 'user'
-}
+import type { User } from '~/types'
 
 export interface LoginForm {
   email: string
@@ -47,7 +41,7 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isAuthenticated: (state): boolean => !!state.token && !!state.user,
-    isAdmin: (state): boolean => state.user?.role === 'admin',
+    isAdmin: (state): boolean => state.user?.role === 'ADMIN',
     isEditor: (state): boolean => ['editor', 'admin'].includes(state.user?.role || ''),
     authHeader(): Record<string, string> {
       return this.token ? { Authorization: `Bearer ${this.token}` } : {}

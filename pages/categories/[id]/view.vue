@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
+// Type assertion for route params
+const params = route.params as { id: string }
 
 interface Category {
   id: number
@@ -16,7 +18,7 @@ interface Category {
   }>
 }
 
-const { data: category } = await useFetch<Category>(`/api/categories/${route.params.id}`)
+const { data: category } = await useFetch<Category>(`/api/categories/${params.id}`)
 
 function formatType(type: string): string {
   const typeMap: { [key: string]: string } = {
@@ -52,16 +54,12 @@ function formatDate(dateStr: string): string {
     <div class="flex items-center justify-between mb-8">
       <h2 class="text-3xl font-bold tracking-tight">分类详情</h2>
       <div class="flex gap-4">
-        <NuxtLink
-          :to="`/categories/${category?.id}`"
-          class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-        >
+        <NuxtLink :to="`/categories/${category?.id}`"
+          class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
           编辑分类
         </NuxtLink>
-        <NuxtLink
-          to="/categories"
-          class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-        >
+        <NuxtLink to="/categories"
+          class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
           返回列表
         </NuxtLink>
       </div>
@@ -103,21 +101,15 @@ function formatDate(dateStr: string): string {
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="question in category?.questions"
-                :key="question.id"
-                class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-              >
+              <tr v-for="question in category?.questions" :key="question.id"
+                class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                 <td class="p-4">{{ question.id }}</td>
                 <td class="p-4">{{ question.title }}</td>
                 <td class="p-4">{{ formatType(question.type) }}</td>
                 <td class="p-4">{{ formatDifficulty(question.difficulty) }}</td>
                 <td class="p-4">{{ formatDate(question.createdAt) }}</td>
                 <td class="p-4">
-                  <NuxtLink
-                    :to="`/questions/${question.id}`"
-                    class="text-sm text-primary hover:underline"
-                  >
+                  <NuxtLink :to="`/questions/${question.id}`" class="text-sm text-primary hover:underline">
                     查看
                   </NuxtLink>
                 </td>
@@ -126,10 +118,7 @@ function formatDate(dateStr: string): string {
           </table>
 
           <!-- 空状态提示 -->
-          <div
-            v-if="!category?.questions?.length"
-            class="p-8 text-center text-muted-foreground"
-          >
+          <div v-if="!category?.questions?.length" class="p-8 text-center text-muted-foreground">
             该分类下暂无题目。
           </div>
         </div>

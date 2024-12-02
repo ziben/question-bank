@@ -1,8 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  future: {
-    compatibilityVersion: 4,
-  },
   
   // 开发工具
   devtools: { enabled: true },
@@ -91,8 +88,7 @@ export default defineNuxtConfig({
   nitro: {
     compressPublicAssets: true,
     routeRules: {
-      '/api/**': { cors: true },
-      '/sw.js': { static: false }
+      '/api/**': { cors: true }
     }
   },
 

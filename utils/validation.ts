@@ -1,11 +1,11 @@
-import type { QuestionType, DifficultyLevel } from '~/types/question'
+import type { QuestionType, DifficultyLevel } from '~/types'
 
 export function isValidQuestionType(type: string): type is QuestionType {
   return ['multiple_choice', 'true_false', 'essay'].includes(type)
 }
 
-export function isValidDifficulty(difficulty: string): difficulty is DifficultyLevel {
-  return ['easy', 'medium', 'hard'].includes(difficulty)
+export function isValidDifficulty(difficulty: any): difficulty is DifficultyLevel {
+  return [1, 2, 3, 4, 5].includes(Number(difficulty))
 }
 
 export function validateQuestion(data: any): string[] {
@@ -61,5 +61,16 @@ export function validatePassword(password: string): string[] {
   if (!/[0-9]/.test(password)) {
     errors.push('密码必须包含数字')
   }
+  return errors
+}
+
+export function validateSubject(data: any): string[] {
+  const errors: string[] = []
+
+  if (!data || !data.name?.trim()) {
+    errors.push('科目名称不能为空')
+  }
+
+  // Add more validation as needed
   return errors
 }

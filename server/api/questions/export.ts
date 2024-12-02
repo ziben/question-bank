@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
           q.category.name,
           q.tags || '',
           q.createdBy.username
-        ].map(field => `"${field.replace(/"/g, '""')}"`).join(','))
+        ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
         
         setHeader(event, 'Content-Type', 'text/csv')
         setHeader(event, 'Content-Disposition', 'attachment; filename=questions.csv')

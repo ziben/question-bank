@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Question, PaginatedResponse } from '~/types/question'
+import type { Question, PaginatedResponse } from '~/types'
 import QuestionsDataTable from '@/components/questions/data-table.vue'
 
 const route = useRoute()

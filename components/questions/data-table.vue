@@ -17,16 +17,16 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { 
-  MoreHorizontal, 
-  ChevronDown, 
+import {
+  MoreHorizontal,
+  ChevronDown,
   Plus,
   Search,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight
 } from 'lucide-vue-next'
-import type { Question, PaginatedResponse } from '~/types/question'
+import { type Question, type PaginatedResponse, DifficultyLevelLabels, type DifficultyLevel } from '~/types'
 
 const props = defineProps<{
   questions: Question[]
@@ -62,7 +62,7 @@ const toggleSort = (column: keyof Question) => {
     sortBy.value = column
     sortDirection.value = 'asc'
   }
-  
+
   emit('query-change', {
     sort: column,
     order: sortDirection.value
@@ -101,13 +101,8 @@ const formatType = (type: string) => {
   return typeMap[type] || type
 }
 
-const formatDifficulty = (difficulty: string) => {
-  const difficultyMap: Record<string, string> = {
-    easy: '简单',
-    medium: '中等',
-    hard: '困难'
-  }
-  return difficultyMap[difficulty] || difficulty
+const formatDifficulty = (difficulty: DifficultyLevel) => {
+  return DifficultyLevelLabels[difficulty] || difficulty
 }
 
 const formatDate = (date: string) => {
@@ -118,11 +113,11 @@ const formatDate = (date: string) => {
   })
 }
 
-const getDifficultyColor = (difficulty: string) => {
+const getDifficultyColor = (difficulty: number) => {
   switch (difficulty) {
-    case 'easy': return 'text-green-600'
-    case 'medium': return 'text-yellow-600'
-    case 'hard': return 'text-red-600'
+    case 1: return 'text-green-600'
+    case 2: return 'text-yellow-600'
+    case 3: return 'text-red-600'
     default: return ''
   }
 }
@@ -156,18 +151,14 @@ const handleLimitChange = (event: Event) => {
             ({{ selectedIds.size }}/{{ questions.length }})
           </span>
         </Button>
-        <Button v-if="selectedIds.size > 0" variant="destructive" @click="$emit('batch-delete', Array.from(selectedIds))">
+        <Button v-if="selectedIds.size > 0" variant="destructive"
+          @click="$emit('batch-delete', Array.from(selectedIds))">
           批量删除
         </Button>
       </div>
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <Input
-            v-model="searchQuery"
-            placeholder="搜索题目..."
-            class="w-[200px]"
-            @keyup.enter="handleSearch"
-          />
+          <Input v-model="searchQuery" placeholder="搜索题目..." class="w-[200px]" @keyup.enter="handleSearch" />
           <Button variant="outline" @click="handleSearch">
             <Search class="h-4 w-4" />
           </Button>
@@ -184,11 +175,9 @@ const handleLimitChange = (event: Event) => {
         <TableHeader>
           <TableRow>
             <TableHead class="w-[40px]">
-              <Checkbox
-                :checked="selectedIds.size === questions.length"
+              <Checkbox :checked="selectedIds.size === questions.length"
                 :indeterminate="selectedIds.size > 0 && selectedIds.size < questions.length"
-                @update:checked="selectAll"
-              />
+                @update:checked="selectAll" />
             </TableHead>
             <TableHead @click="toggleSort('title')" class="cursor-pointer">
               标题
@@ -216,10 +205,7 @@ const handleLimitChange = (event: Event) => {
         <TableBody>
           <TableRow v-for="question in questions" :key="question.id">
             <TableCell>
-              <Checkbox
-                :checked="selectedIds.has(question.id)"
-                @update:checked="toggleSelect(question.id)"
-              />
+              <Checkbox :checked="selectedIds.has(question.id)" @update:checked="toggleSelect(question.id)" />
             </TableCell>
             <TableCell>{{ question.title }}</TableCell>
             <TableCell>
@@ -271,9 +257,7 @@ const handleLimitChange = (event: Event) => {
           <p class="text-sm font-medium">每页</p>
           <select
             class="h-8 w-[70px] rounded-md border border-input bg-transparent px-2 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
-            :value="pagination.limit"
-            @change="handleLimitChange"
-          >
+            :value="pagination.limit" @change="handleLimitChange">
             <option value="10">10</option>
             <option value="20">20</option>
             <option value="30">30</option>
@@ -285,21 +269,13 @@ const handleLimitChange = (event: Event) => {
           第 {{ pagination.page }}/{{ pagination.totalPages }} 页
         </div>
         <div class="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            class="h-8 w-8 p-0"
-            :disabled="pagination.page <= 1"
-            @click="goToPage(pagination.page - 1)"
-          >
+          <Button variant="outline" class="h-8 w-8 p-0" :disabled="pagination.page <= 1"
+            @click="goToPage(pagination.page - 1)">
             <span class="sr-only">上一页</span>
             <ChevronLeft class="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            class="h-8 w-8 p-0"
-            :disabled="pagination.page >= pagination.totalPages"
-            @click="goToPage(pagination.page + 1)"
-          >
+          <Button variant="outline" class="h-8 w-8 p-0" :disabled="pagination.page >= pagination.totalPages"
+            @click="goToPage(pagination.page + 1)">
             <span class="sr-only">下一页</span>
             <ChevronRight class="h-4 w-4" />
           </Button>

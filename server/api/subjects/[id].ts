@@ -5,9 +5,9 @@ const prisma = new PrismaClient()
 
 export default defineEventHandler(async (event: H3Event) => {
   const method = event.method
-  const id = parseInt(event.context.params.id)
+  const id = event.context.params?.id ? parseInt(event.context.params.id, 10) : null
 
-  if (isNaN(id)) {
+  if (typeof id !== 'number' || isNaN(id)) {
     throw createError({
       statusCode: 400,
       message: '无效的ID'
