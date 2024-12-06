@@ -20,14 +20,43 @@
       <SidebarGroup>
         <SidebarGroupLabel>导航菜单</SidebarGroupLabel>
         <SidebarMenu>
-          <SidebarMenuItem v-for="item in allNavigationItems" :key="item.path">
-            <SidebarMenuButton as-child :tooltip="item.name">
-              <NuxtLink :to="item.path" :class="{ 'bg-accent': route.path === item.path }">
-                <component :is="item.icon" />
-                <span>{{ item.name }}</span>
-              </NuxtLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <template v-for="item in allNavigationItems" :key="item.path">
+            <!-- 带子菜单的项目 -->
+            <template v-if="item.children">
+              <SidebarMenuItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger as-child>
+                    <SidebarMenuButton :tooltip="item.name">
+                      <component :is="item.icon" class="size-4" />
+                      <span>{{ item.name }}</span>
+                      <ChevronsUpDown class="ml-auto size-4" />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent class="w-[--radix-dropdown-menu-trigger-width] min-w-48">
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem v-for="child in item.children" :key="child.path">
+                        <NuxtLink :to="child.path" class="flex items-center w-full">
+                          <component :is="child.icon" class="mr-2 size-4" />
+                          <span>{{ child.name }}</span>
+                        </NuxtLink>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            </template>
+            <!-- 普通菜单项 -->
+            <template v-else>
+              <SidebarMenuItem>
+                <SidebarMenuButton as-child :tooltip="item.name">
+                  <NuxtLink :to="item.path" :class="{ 'bg-accent': route.path === item.path }">
+                    <component :is="item.icon" class="size-4" />
+                    <span>{{ item.name }}</span>
+                  </NuxtLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </template>
+          </template>
         </SidebarMenu>
       </SidebarGroup>
     </SidebarContent>
@@ -54,7 +83,8 @@
             <DropdownMenuContent class="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg" side="bottom"
               align="end" :side-offset="4">
               <DropdownMenuLabel class="p-0 font-normal">
-                我的账户</DropdownMenuLabel>
+                我的账户
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem>
@@ -81,8 +111,8 @@
 </template>
 
 <script setup lang="ts">
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
-import { BookOpen, ChevronsUpDown, CreditCard, Frame, LogOut, Map, Settings, User, Users } from 'lucide-vue-next';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu } from '@/components/shadcn/sidebar';
+import { BookOpen, ChevronsUpDown, CreditCard, FileText, Frame, History, LogOut, Map, Settings, User, Users, BarChart2, Tags } from 'lucide-vue-next';
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -91,6 +121,7 @@ interface NavigationItem {
   name: string
   path: string
   icon: any
+  children?: NavigationItem[]
 }
 
 const navigationItems: NavigationItem[] = [
@@ -122,7 +153,7 @@ const navigationItems: NavigationItem[] = [
   {
     name: '统计分析',
     path: '/statistics',
-    icon: Map
+    icon: BarChart2
   }
 ]
 
@@ -131,6 +162,33 @@ const adminItems: NavigationItem[] = [
     name: '用户管理',
     path: '/admin/users',
     icon: Users
+  },
+  {
+    name: '标签管理',
+    path: '/admin/tags',
+    icon: Tags
+  },
+  {
+    name: '日志管理',
+    path: '/admin/logs',
+    icon: FileText,
+    children: [
+      {
+        name: '操作日志',
+        path: '/admin/logs',
+        icon: FileText
+      },
+      {
+        name: '统计分析',
+        path: '/admin/logs/statistics',
+        icon: BarChart2
+      },
+      {
+        name: '审计日志',
+        path: '/admin/logs/audit',
+        icon: History
+      }
+    ]
   }
 ]
 

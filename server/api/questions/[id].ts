@@ -32,30 +32,87 @@ export default defineEventHandler(async (event: H3Event) => {
 
   if (method === 'PUT') {
     const body = await readBody(event)
-    const updatedQuestion = await prisma.question.update({
-      where: { id: parseInt(id) },
-      data: {
-        title: body.title,
-        content: body.content,
-        difficulty: body.difficulty,
-        categoryId: body.categoryId,
-        options: body.options,
-        answer: body.correctAnswer,
-        explanation: body.explanation,
-        tags: body.tags
-      },
-      include: {
-        category: true
-      }
+    
+    // Validate required fields
+    if (!body.title || !body.content || !body.categoryId || !body.correctAnswer) {
+      throw createError({
+        statusCode: 400,
+        message: 'Missing required fields'
+      })
+    }
+
+    // Verify category exists
+    const categoryExists = await prisma.category.findUnique({
+      where: { id: body.categoryId }
     })
-    return updatedQuestion
+    if (!categoryExists) {
+      throw createError({
+        statusCode: 400,
+        message: '分类不存在'
+      })
+    }
+
+    try {
+      const updatedQuestion = await prisma.$transaction(async (tx) => {
+        // Check if question exists
+        const existingQuestion = await tx.question.findUnique({
+          where: { id: parseInt(id) }
+        })
+        if (!existingQuestion) {
+          throw createError({
+            statusCode: 404,
+            message: 'Question not found'
+          })
+        }
+
+        return await tx.question.update({
+          where: { id: parseInt(id) },
+          data: {
+            title: body.title,
+            content: body.content,
+            difficulty: body.difficulty,
+            categoryId: body.categoryId,
+            options: body.options || [],
+            answer: body.correctAnswer,
+            explanation: body.explanation || '',
+            tags: body.tags || [],
+            updatedAt: new Date()
+          },
+          include: {
+            category: true
+          }
+        })
+      })
+      return updatedQuestion
+    } catch (error: any) {
+      throw createError({
+        statusCode: 500,
+        message: `Failed to update question: ${error.message}`
+      })
+    }
   }
 
   if (method === 'DELETE') {
-    await prisma.question.delete({
-      where: { id: parseInt(id) }
-    })
-    return { message: 'Question deleted successfully' }
+    try {
+      const question = await prisma.question.delete({
+        where: { id: parseInt(id) }
+      })
+      return {
+        message: 'Question deleted successfully',
+        id: question.id
+      }
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw createError({
+          statusCode: 404,
+          message: 'Question not found'
+        })
+      }
+      throw createError({
+        statusCode: 500,
+        message: `Failed to delete question: ${error.message}`
+      })
+    }
   }
 
   throw createError({

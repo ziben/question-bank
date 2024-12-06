@@ -41,10 +41,19 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isAuthenticated: (state): boolean => !!state.token && !!state.user,
-    isAdmin: (state): boolean => state.user?.role === 'ADMIN',
+    isAdmin: (state): boolean => {
+      if (!state.user?.roles) return false
+      return true
+    },
+    hasPermission: (state) => (permission: string): boolean => {
+      if (!state.user?.roles) return false
+      return state.user.roles.some(role =>
+        role.permissions.some(p => p === permission)
+      )
+    },
     isEditor: (state): boolean => ['editor', 'admin'].includes(state.user?.role || ''),
     authHeader(): Record<string, string> {
-      return this.token ? { Authorization: `Bearer ${this.token}` } : {}
+      return this.token ? { 'Authorization': `Bearer ${this.token}` } : {}
     }
   },
 

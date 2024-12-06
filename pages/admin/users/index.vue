@@ -1,130 +1,209 @@
 <template>
-  <div class="container mx-auto px-4 py-8">
+  <div class="p-6">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">用户管理</h1>
-      <button @click="showCreateModal = true" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-        添加用户
-      </button>
-      <button @click="exportAllData" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-        导出全部数据
-      </button>
+      <h1 class="text-2xl font-semibold tracking-tight">用户管理</h1>
+      <div class="flex items-center gap-4">
+        <div class="relative w-64">
+          <Input
+            v-model="searchQuery"
+            placeholder="搜索用户..."
+            class="w-full"
+          >
+            <template #prefix>
+              <SearchIcon class="h-4 w-4 text-muted-foreground" />
+            </template>
+          </Input>
+        </div>
+        <Button @click="openUserDialog()">
+          <PlusIcon class="h-4 w-4 mr-2" />
+          新建用户
+        </Button>
+      </div>
     </div>
 
-    <!-- 用户列表 -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <Card>
       <DataTable
         :columns="columns"
         :data="users"
+        :total="total"
         :loading="loading"
-        :selected-items="selectedUsers"
-        @update:selected-items="selectedUsers = $event"
-        :show-batch-actions="true"
-        :batch-actions="batchActions"
-        @apply-filters="applyFilters"
-        @reset-filters="resetFilters"
+        :current-page="currentPage"
+        :page-size="pageSize"
+        @page-change="onPageChange"
+        @page-size-change="onPageSizeChange"
       >
-        <template #cell-role="{ item }">
-          {{ formatRole(item.role) }}
-        </template>
-        <template #cell-createdAt="{ item }">
-          {{ new Date(item.createdAt).toLocaleString() }}
-        </template>
-        <template #cell-actions="{ item }">
-          <div class="flex items-center space-x-2">
-            <Button variant="outline" size="sm" @click="() => editUser(item)">
-              <Pencil class="h-4 w-4" />
-            </Button>
-            <Button variant="destructive" size="sm" @click="() => confirmDelete(item)">
-              <Trash class="h-4 w-4" />
-            </Button>
+        <template #roles="{ value }">
+          <div class="flex flex-wrap gap-2">
+            <Badge
+              v-for="role in value"
+              :key="role.id"
+              variant="secondary"
+            >
+              {{ role.name }}
+            </Badge>
           </div>
         </template>
+        <template #actions="{ row }">
+          <DropdownMenu>
+            <DropdownMenuTrigger as="div">
+              <Button variant="ghost" size="icon">
+                <MoreHorizontalIcon class="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem @click="openUserDialog(row)">
+                <PencilIcon class="h-4 w-4 mr-2" />
+                编辑
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="openRoleDialog(row)">
+                <UserGroupIcon class="h-4 w-4 mr-2" />
+                角色设置
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem @click="deleteUser(row)" class="text-destructive">
+                <TrashIcon class="h-4 w-4 mr-2" />
+                删除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </template>
       </DataTable>
-    </div>
+    </Card>
 
-    <!-- 创建/编辑用户模态框 -->
-    <Dialog :open="showCreateModal" @update:open="(value) => showCreateModal = value">
-      <DialogContent class="sm:max-w-[425px]">
+    <!-- 用户表单对话框 -->
+    <Dialog :open="showUserDialog" @update:open="showUserDialog = $event">
+      <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{{ isEditing ? '编辑用户' : '创建用户' }}</DialogTitle>
-          <DialogDescription>
-            填写以下信息{{ isEditing ? '修改' : '创建' }}用户。
-          </DialogDescription>
+          <DialogTitle>{{ editingUser ? '编辑用户' : '新建用户' }}</DialogTitle>
         </DialogHeader>
-        <form @submit.prevent="handleSubmit" class="space-y-4">
-          <FormField name="username">
-            <FormItem>
-              <FormLabel>用户名</FormLabel>
-              <FormControl>
-                <Input v-model="form.username" type="text" required />
-              </FormControl>
-            </FormItem>
-          </FormField>
-
-          <FormField name="email">
-            <FormItem>
-              <FormLabel>邮箱</FormLabel>
-              <FormControl>
-                <Input v-model="form.email" type="email" required />
-              </FormControl>
-            </FormItem>
-          </FormField>
-
-          <FormField name="password">
-            <FormItem>
-              <FormLabel>密码</FormLabel>
-              <FormControl>
-                <Input v-model="form.password" type="password" :required="!isEditing" />
-              </FormControl>
-            </FormItem>
-          </FormField>
-
-          <FormField name="role">
-            <FormItem>
-              <FormLabel>角色</FormLabel>
-              <Select v-model="form.role">
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择用户角色" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="USER">用户</SelectItem>
-                  <SelectItem value="EDITOR">编辑</SelectItem>
-                  <SelectItem value="ADMIN">管理员</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormItem>
-          </FormField>
-
+        <Form
+          :validation-schema="userSchema"
+          @submit="saveUser"
+          v-slot="{ errors }"
+          class="space-y-4"
+        >
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label for="username">用户名</Label>
+              <Field
+                name="username"
+                v-slot="{ field }"
+                :rules="{ required: true, min: 3 }"
+              >
+                <Input
+                  id="username"
+                  v-bind="field"
+                  :disabled="!!editingUser"
+                  :class="{ 'border-destructive': errors.username }"
+                />
+              </Field>
+              <ErrorMessage name="username" class="text-sm text-destructive" />
+            </div>
+            <div class="space-y-2">
+              <Label for="email">邮箱</Label>
+              <Field
+                name="email"
+                v-slot="{ field }"
+                :rules="{ required: true, email: true }"
+              >
+                <Input
+                  id="email"
+                  type="email"
+                  v-bind="field"
+                  :class="{ 'border-destructive': errors.email }"
+                />
+              </Field>
+              <ErrorMessage name="email" class="text-sm text-destructive" />
+            </div>
+            <div class="space-y-2">
+              <Label for="name">姓名</Label>
+              <Field name="name" v-slot="{ field }">
+                <Input id="name" v-bind="field" />
+              </Field>
+            </div>
+            <div class="space-y-2">
+              <Label for="password">密码</Label>
+              <Field
+                name="password"
+                v-slot="{ field }"
+                :rules="{ required: !editingUser, min: 6 }"
+              >
+                <Input
+                  id="password"
+                  type="password"
+                  v-bind="field"
+                  :placeholder="editingUser ? '不修改请留空' : ''"
+                  :class="{ 'border-destructive': errors.password }"
+                />
+              </Field>
+              <ErrorMessage name="password" class="text-sm text-destructive" />
+            </div>
+          </div>
           <DialogFooter>
-            <Button type="button" variant="outline" @click="showCreateModal = false">
+            <Button
+              type="button"
+              variant="outline"
+              @click="showUserDialog = false"
+            >
               取消
             </Button>
-            <Button type="submit">
-              {{ isEditing ? '保存' : '创建' }}
+            <Button type="submit" :loading="saving">
+              {{ editingUser ? '保存' : '创建' }}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
 
-    <!-- 删除确认模态框 -->
-    <Dialog :open="showDeleteModal" @update:open="showDeleteModal = false">
-      <DialogContent>
+    <!-- 角色设置对话框 -->
+    <Dialog :open="showRoleDialog" @update:open="showRoleDialog = $event">
+      <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>确认删除</DialogTitle>
-          <DialogDescription>
-            确定要删除用户 "{{ selectedUser?.username }}" 吗？此操作无法撤销。
-          </DialogDescription>
+          <DialogTitle>角色设置 - {{ editingUser?.username }}</DialogTitle>
         </DialogHeader>
-        <div class="flex justify-end space-x-3">
-          <Button variant="outline" @click="showDeleteModal = false">
-            取消
-          </Button>
-          <Button variant="destructive" @click="deleteUser">
-            删除
-          </Button>
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <Label>已分配角色</Label>
+            <div class="flex flex-wrap gap-2">
+              <Badge
+                v-for="role in selectedRoles"
+                :key="role.id"
+                variant="secondary"
+                class="cursor-pointer hover:bg-destructive"
+                @click="removeRole(role)"
+              >
+                {{ role.name }}
+                <XIcon class="h-3 w-3 ml-1" />
+              </Badge>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <Label>可选角色</Label>
+            <div class="flex flex-wrap gap-2">
+              <Badge
+                v-for="role in availableRoles"
+                :key="role.id"
+                variant="outline"
+                class="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                @click="addRole(role)"
+              >
+                {{ role.name }}
+                <PlusIcon class="h-3 w-3 ml-1" />
+              </Badge>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              @click="showRoleDialog = false"
+            >
+              取消
+            </Button>
+            <Button @click="saveRoles" :loading="savingRoles">
+              保存
+            </Button>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>
@@ -132,280 +211,243 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import type { User } from '~/types'
-import type { Permission } from '~/types/permission'
-import DataTable, { type BatchAction } from '@/components/ui/data-table.vue'
-import { usePermission } from '~/composables/usePermission'
-import { useLogger } from '~/composables/useLogger'
-import { useExport } from '@/composables/useExport'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { ref, computed } from 'vue'
+import { useForm } from 'vee-validate'
+import { SearchIcon, PlusIcon, MoreHorizontalIcon, PencilIcon, UserGroupIcon, TrashIcon, XIcon } from 'lucide-vue-next'
+import { useConfirm } from '@/composables/useConfirm'
+import type { User, Role } from '@prisma/client'
 
-const { createLog } = useLogger()
-const { exportToExcel } = useExport()
+interface UserWithRoles extends User {
+  roles: Role[]
+}
+
+// 表格列定义
+const columns = [
+  {
+    key: 'username',
+    title: '用户名'
+  },
+  {
+    key: 'email',
+    title: '邮箱'
+  },
+  {
+    key: 'name',
+    title: '姓名'
+  },
+  {
+    key: 'roles',
+    title: '角色'
+  },
+  {
+    key: 'createdAt',
+    title: '创建时间',
+    format: (value: string) => new Date(value).toLocaleString()
+  },
+  {
+    key: 'actions',
+    title: '操作',
+    width: 100
+  }
+]
+
 // 状态管理
 const loading = ref(false)
-const selectedUsers = ref<User[]>([])
-const showBatchActionMenu = ref(false)
-const showFilters = ref(false)
-const showCreateModal = ref(false)
-const showDeleteModal = ref(false)
-const isEditing = ref(false)
-const selectedUser = ref<User | null>(null)
-const users = ref<User[]>([])
-const alert = useAlert()
-// 表单状态
-const form = reactive({
-  username: '',
-  email: '',
-  role: '',
-  password: ''
-})
+const saving = ref(false)
+const savingRoles = ref(false)
+const showUserDialog = ref(false)
+const showRoleDialog = ref(false)
+const editingUser = ref<UserWithRoles | null>(null)
+const users = ref<UserWithRoles[]>([])
+const roles = ref<Role[]>([])
+const selectedRoles = ref<Role[]>([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const searchQuery = ref('')
 
-// 筛选条件
-const filters = reactive({
-  role: '',
-  startDate: '',
-  endDate: '',
-  status: ''
-})
+const confirm = useConfirm()
 
-// 表格列配置
-const columns = [
-  { key: 'username', title: '用户名', sortable: true },
-  { key: 'email', title: '邮箱' },
-  { key: 'role', title: '角色', sortable: true },
-  { key: 'createdAt', title: '创建时间', sortable: true },
-  { key: 'status', title: '状态', sortable: true },
-  { key: 'actions', title: '操作' }
-]
-
-// 处理批量删除
-async function handleBatchDelete() {
-  if (!selectedUsers.value.length) return
-
-  const confirmed = confirm(`确定要删除选中的 ${selectedUsers.value.length} 个用户吗？此操作不可撤销。`)
-
-  if (!confirmed) return
-
-  loading.value = true
-  try {
-    await $fetch('/api/users/batch', {
-      method: 'DELETE',
-      body: { ids: selectedUsers.value.map(user => user.id) }
-    })
-
-    await createLog('user.delete', `批量删除用户`, `删除了 ${selectedUsers.value.length} 个用户`)
-    alert.success('删除成功')
-    selectedUsers.value = []
-    await fetchUsers()
-  } catch (error) {
-    alert.error('删除失败')
-  } finally {
-    loading.value = false
-  }
+// 用户表单验证规则
+const userSchema = {
+  username: 'required|min:3',
+  email: 'required|email',
+  password: computed(() => editingUser.value ? 'min:6' : 'required|min:6'),
+  name: 'string'
 }
 
-// 处理导出选中数据
-async function handleExportSelected() {
-  const headers = {
-    username: '用户名',
-    email: '邮箱',
-    role: '角色',
-    createdAt: '创建时间',
-    status: '状态'
-  }
-
-  const data = selectedUsers.value.map(user => ({
-    ...user,
-    createdAt: new Date(user.createdAt).toLocaleString(),
-    role: formatRole(user.role)
-  }))
-
-  await exportToExcel(data, '用户数据')
-  await createLog('user.export', '导出选中用户数据', `导出了 ${data.length} 条用户数据`)
-  alert.success('导出成功')
-}
-
-// 处理批量更新角色
-async function handleBatchUpdateRole() {
-  return
-}
-
-// 批量操作选项
-const batchActions : BatchAction[] = [
-  {
-    label: '批量删除',
-    action: handleBatchDelete,
-    permission: 'user:delete',
-    variant: 'destructive'
-  },
-  {
-    label: '导出选中',
-    action: handleExportSelected,
-    permission: 'user:export'
-  },
-  {
-    label: '批量更新角色',
-    action: handleBatchUpdateRole,
-    permission: 'user:update'
-  }
-]
-
-// 处理表单提交
-const handleSubmit = async () => {
+// 获取用户列表
+async function fetchUsers() {
   try {
     loading.value = true
-    const data = { ...form }
-
-    if (isEditing.value && selectedUser.value) {
-      await $fetch(`/api/users/${selectedUser.value.id}`, {
-        method: 'PUT',
-        body: data
-      })
-      await createLog('user.update', `更新用户 ${selectedUser.value.username}`)
-    } else {
-      await $fetch('/api/users', {
-        method: 'POST',
-        body: data
-      })
-      await createLog('user.create', `创建用户 ${data.username}`)
-    }
-
-    showCreateModal.value = false
-    await fetchUsers()
+    const response = await fetch(`/api/users?page=${currentPage.value}&pageSize=${pageSize.value}&search=${searchQuery.value}`)
+    const data = await response.json()
+    users.value = data.items
+    total.value = data.total
   } catch (error) {
-    console.error('Failed to submit form:', error)
+    console.error('获取用户列表失败:', error)
   } finally {
     loading.value = false
+  }
+}
+
+// 获取角色列表
+async function fetchRoles() {
+  try {
+    const response = await fetch('/api/roles')
+    const data = await response.json()
+    roles.value = data
+  } catch (error) {
+    console.error('获取角色列表失败:', error)
+  }
+}
+
+// 打开用户对话框
+function openUserDialog(user: UserWithRoles | null = null) {
+  editingUser.value = user
+  if (user) {
+    form.resetForm({
+      values: {
+        username: user.username,
+        email: user.email,
+        name: user.name || '',
+        password: ''
+      }
+    })
+  } else {
+    form.resetForm()
+  }
+  showUserDialog.value = true
+}
+
+// 打开角色设置对话框
+function openRoleDialog(user: UserWithRoles) {
+  editingUser.value = user
+  selectedRoles.value = [...user.roles]
+  showRoleDialog.value = true
+}
+
+// 计算可选角色列表
+const availableRoles = computed(() => {
+  return roles.value.filter(role => 
+    !selectedRoles.value.some(selected => selected.id === role.id)
+  )
+})
+
+// 添加角色
+function addRole(role: Role) {
+  selectedRoles.value.push(role)
+}
+
+// 移除角色
+function removeRole(role: Role) {
+  selectedRoles.value = selectedRoles.value.filter(r => r.id !== role.id)
+}
+
+// 保存用户信息
+const { handleSubmit } = useForm({
+  validationSchema: userSchema
+})
+
+const saveUser = handleSubmit(async (values) => {
+  try {
+    saving.value = true
+    const url = editingUser.value
+      ? `/api/users/${editingUser.value.id}`
+      : '/api/users'
+    const method = editingUser.value ? 'PUT' : 'POST'
+    
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(values)
+    })
+    
+    if (!response.ok) throw new Error('保存失败')
+    
+    showUserDialog.value = false
+    fetchUsers()
+  } catch (error) {
+    console.error('保存用户失败:', error)
+  } finally {
+    saving.value = false
+  }
+})
+
+// 保存角色设置
+async function saveRoles() {
+  if (!editingUser.value) return
+  
+  try {
+    savingRoles.value = true
+    const response = await fetch(`/api/users/${editingUser.value.id}/roles`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        roleIds: selectedRoles.value.map(role => role.id)
+      })
+    })
+    
+    if (!response.ok) throw new Error('保存失败')
+    
+    showRoleDialog.value = false
+    fetchUsers()
+  } catch (error) {
+    console.error('保存角色失败:', error)
+  } finally {
+    savingRoles.value = false
   }
 }
 
 // 删除用户
-const deleteUser = async () => {
-  if (!selectedUser.value) return
-
+async function deleteUser(user: User) {
+  const confirmed = await confirm({
+    title: '确认删除',
+    content: `确定要删除用户 "${user.username}" 吗？此操作不可恢复。`,
+    type: 'error',
+    confirmButton: {
+      text: '删除',
+      variant: 'destructive'
+    }
+  })
+  
+  if (!confirmed) return
+  
   try {
-    loading.value = true
-    await $fetch(`/api/users/${selectedUser.value.id}`, {
+    const response = await fetch(`/api/users/${user.id}`, {
       method: 'DELETE'
     })
-    await createLog('user.delete', `删除用户 ${selectedUser.value.username}`)
-    showDeleteModal.value = false
-    await fetchUsers()
+    
+    if (!response.ok) throw new Error('删除失败')
+    
+    fetchUsers()
   } catch (error) {
-    console.error('Failed to delete user:', error)
-  } finally {
-    loading.value = false
+    console.error('删除用户失败:', error)
   }
 }
 
-// 应用筛选
-const applyFilters = () => {
+// 分页处理
+function onPageChange(page: number) {
+  currentPage.value = page
+}
+
+function onPageSizeChange(size: number) {
+  pageSize.value = size
   currentPage.value = 1
+}
+
+// 监听分页和搜索变化
+watch([currentPage, pageSize, searchQuery], () => {
   fetchUsers()
-}
+})
 
-// 重置筛选
-const resetFilters = () => {
-  Object.assign(filters, {
-    role: '',
-    startDate: '',
-    endDate: '',
-    status: ''
-  })
-  applyFilters()
-}
-
-// 导出全部数据
-const exportAllData = async () => {
-  loading.value = true
-  try {
-    const { users } = await $fetch<{ users: User[] }>('/api/users/export')
-    const headers = {
-      username: '用户名',
-      email: '邮箱',
-      role: '角色',
-      createdAt: '创建时间',
-      status: '状态'
-    }
-
-    const data = users.map(user => ({
-      ...user,
-      createdAt: new Date(user.createdAt).toLocaleString(),
-      role: formatRole(user.role)
-    }))
-
-    await exportToExcel(data, '用户数据')
-    await createLog('user.export', '导出全部用户数据', `导出了 ${data.length} 条用户数据`)
-    alert.success('导出成功')
-  } catch (error) {
-    alert.error('导出失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-const searchQuery = ref('')
-
-// 获取用户列表
-const fetchUsers = async () => {
-  loading.value = true
-  try {
-    const response = await $fetch<{ users: User[], total: number }>('/api/users', {
-      query: {
-        page: currentPage.value,
-        limit: pageSize.value,
-        ...filters,
-        search: searchQuery.value
-      }
-    })
-    users.value = response.users
-    total.value = response.total
-  } catch (error) {
-    alert.error('获取用户列表失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-const currentPage = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
-
-const formatRole = (role: string) => {
-  const roleMap: Record<string, string> = {
-    'ADMIN': '管理员',
-    'USER': '普通用户',
-    'EDITOR': '编辑'
-  }
-  return roleMap[role] || role
-}
-
-const editUser = (user: User) => {
-  isEditing.value = true
-  selectedUser.value = user
-  Object.assign(form, user)
-  showCreateModal.value = true
-}
-
-const confirmDelete = (user: User) => {
-  selectedUser.value = user
-  showDeleteModal.value = true
-}
+// 初始化
+onMounted(() => {
+  fetchUsers()
+  fetchRoles()
+})
 </script>

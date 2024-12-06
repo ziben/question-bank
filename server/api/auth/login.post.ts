@@ -15,7 +15,22 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = await prisma.user.findUnique({
-    where: { email }
+    where: { email },
+    include: {
+      roles: {
+        include: {
+          role: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   })
 
   if (!user) {
@@ -33,7 +48,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const token = generateToken(user.id, user.role)
+  const token = generateToken(user)
 
   return {
     token,
@@ -41,7 +56,10 @@ export default defineEventHandler(async (event) => {
       id: user.id,
       email: user.email,
       username: user.username,
-      role: user.role
+      roles: user.roles.map(ur => ({
+        ...ur.role,
+        permissions: ur.role.permissions.map(rp => rp.permission)
+      }))
     }
   }
 })

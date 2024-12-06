@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DataTable from '@/components/my/data-table/DataTable.vue'
 import {
   Table,
   TableBody,
@@ -6,9 +7,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+} from '@/components/shadcn/table'
+import { Button } from '@/components/shadcn/button'
+import { Input } from '@/components/shadcn/input'
 import {
   Dialog,
   DialogContent,
@@ -16,9 +17,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+} from '@/components/shadcn/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/shadcn/select'
 import { Plus, Search, Pencil, Trash } from 'lucide-vue-next'
 
 interface Source {
@@ -184,33 +184,30 @@ const getSourceTypeLabel = (type: string) => {
     </div>
 
     <div class="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>名称</TableHead>
-            <TableHead>类型</TableHead>
-            <TableHead>描述</TableHead>
-            <TableHead>创建时间</TableHead>
-            <TableHead class="text-right">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="source in filteredSources" :key="source.id">
-            <TableCell>{{ source.name }}</TableCell>
-            <TableCell>{{ getSourceTypeLabel(source.type) }}</TableCell>
-            <TableCell>{{ source.description }}</TableCell>
-            <TableCell>{{ new Date(source.createdAt).toLocaleString() }}</TableCell>
-            <TableCell class="text-right">
-              <Button variant="ghost" size="icon" @click="openEditDialog(source)">
-                <Pencil class="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" @click="handleDelete(source.id)">
-                <Trash class="h-4 w-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <DataTable
+        :columns="[
+          { key: 'name', title: '名称' },
+          { key: 'type', title: '类型' },
+          { key: 'description', title: '描述' },
+          { key: 'createdAt', title: '创建时间' }
+        ]"
+        :data="filteredSources"
+      >
+        <template #type="{ value }">
+          {{ getSourceTypeLabel(value) }}
+        </template>
+        <template #createdAt="{ value }">
+          {{ new Date(value).toLocaleString() }}
+        </template>
+        <template #row-actions="{ row }">
+          <Button variant="ghost" size="icon" @click="openEditDialog(row)">
+            <Pencil class="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" @click="handleDelete(row.id)">
+            <Trash class="h-4 w-4" />
+          </Button>
+        </template>
+      </DataTable>
     </div>
   </div>
 </template>

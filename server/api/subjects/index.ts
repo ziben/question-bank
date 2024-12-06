@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { H3Event } from 'h3'
+import { getUserFromEvent } from '~/server/utils/auth'
 
 const prisma = new PrismaClient()
 
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
     case 'POST':
       const body = await readBody(event)
-      
+      const user = await getUserFromEvent(event)
       // 验证必填字段
       if (!body.name) {
         throw createError({
@@ -40,7 +41,13 @@ export default defineEventHandler(async (event: H3Event) => {
       const newSubject = await prisma.subject.create({
         data: {
           name: body.name,
-          description: body.description
+          description: body.description,
+          createdBy: {
+            connect: { id: user?.id },
+          },
+          updatedBy: {
+            connect: { id: user?.id },
+          },
         }
       })
       return newSubject

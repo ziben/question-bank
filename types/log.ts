@@ -1,39 +1,56 @@
-export type LogLevel = 'info' | 'warning' | 'error'
+import { LOG_MODULES, LOG_ACTIONS, LOG_LEVELS } from '~/server/config/logger'
 
-export type LogType = 
-  | 'user.create'
-  | 'user.update'
-  | 'user.delete'
-  | 'user.export'
-  | 'subject.create'
-  | 'subject.update'
-  | 'subject.delete'
-  | 'question.create'
-  | 'question.update'
-  | 'question.delete'
-  | 'login'
-  | 'logout'
+// 从配置中导出类型
+export type LogModule = keyof typeof LOG_MODULES
+export type LogAction = keyof typeof LOG_ACTIONS
+export type LogLevel = keyof typeof LOG_LEVELS
 
-export interface Log {
+// 日志条目类型
+export interface LogEntry {
   id: number
-  type: LogType
+  module: LogModule
+  action: LogAction
   level: LogLevel
+  message: string
+  metadata: Record<string, any>
   userId: number
-  userName: string
-  action: string
-  details: string
-  ip: string
-  userAgent: string
-  createdAt: string
+  ip?: string
+  userAgent?: string
+  createdAt: Date
 }
 
+// 日志查询参数类型
 export interface LogQueryParams {
-  page?: number
-  limit?: number
-  type?: LogType
+  page: number
+  pageSize: number
+  module?: LogModule
+  action?: LogAction
   level?: LogLevel
   userId?: number
-  startDate?: string
-  endDate?: string
+  startDate?: Date
+  endDate?: Date
   search?: string
+  ip?: string
+}
+
+// 日志统计类型
+export interface LogStatistics {
+  total: number
+  today: number
+  details: {
+    moduleStats: Record<LogModule, number>
+    actionStats: Record<LogAction, number>
+    levelStats: Record<LogLevel, number>
+    timeSeriesData: Array<{
+      date: string
+      count: number
+    }>
+  }
+}
+
+// 日志审计轨迹类型
+export interface LogAuditTrail {
+  targetId: string
+  module: LogModule
+  logs: LogEntry[]
 }

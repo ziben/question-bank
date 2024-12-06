@@ -1,90 +1,81 @@
-<template>
-  <div>
-    <div class="fixed top-4 right-4 z-50 space-y-2">
-      <TransitionGroup name="alert">
-        <div
-          v-for="alert in alerts"
-          :key="alert.id"
-          class="rounded-lg border-l-4 p-4 shadow-md"
-          :class="{
-            'bg-green-100 border-green-500 text-green-700': alert.type === 'success',
-            'bg-red-100 border-red-500 text-red-700': alert.type === 'error',
-            'bg-yellow-100 border-yellow-500 text-yellow-700': alert.type === 'warning',
-            'bg-blue-100 border-blue-500 text-blue-700': alert.type === 'info'
-          }"
-        >
-          <div class="flex items-start">
-            <div class="flex-1">
-              <p v-if="alert.title" class="font-bold">{{ alert.title }}</p>
-              <p>{{ alert.message }}</p>
-            </div>
-            <button
-              @click="removeAlert(alert.id)"
-              class="ml-4 text-gray-400 hover:text-gray-600"
-            >
-              <span class="sr-only">Close</span>
-              <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fill-rule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </TransitionGroup>
-    </div>
-    <slot></slot>
-  </div>
-</template>
-
 <script setup lang="ts">
-interface Alert {
-  id: number
-  type: 'success' | 'error' | 'warning' | 'info'
-  title?: string
-  message: string
-  duration?: number
+import { ref, provide } from 'vue'
+import { Alert, AlertTitle, AlertDescription } from '@/components/shadcn/alert'
+import type { AlertVariants } from '@/components/shadcn/alert'
+
+interface AlertItem {
+    id: number
+    type: 'success' | 'error' | 'warning' | 'info'
+    title?: string
+    message: string
+    duration?: number
 }
 
-const alerts = ref<Alert[]>([])
-let nextId = 0
+const alerts = ref<AlertItem[]>([])
+let nextId = 1
 
-const addAlert = (alert: Omit<Alert, 'id'>) => {
-  const id = nextId++
-  const newAlert = { ...alert, id }
-  alerts.value.push(newAlert)
+const addAlert = (alert: Omit<AlertItem, 'id'>) => {
+    const id = nextId++
+    const newAlert = {
+        id,
+        ...alert,
+        duration: alert.duration ?? 5000
+    }
+    alerts.value.push(newAlert)
 
-  if (alert.duration !== 0) {
-    setTimeout(() => {
-      removeAlert(id)
-    }, alert.duration || 5000)
-  }
+    if (newAlert.duration > 0) {
+        setTimeout(() => {
+            removeAlert(id)
+        }, newAlert.duration)
+    }
 
-  return id
+    return id
 }
 
 const removeAlert = (id: number) => {
-  const index = alerts.value.findIndex(alert => alert.id === id)
-  if (index !== -1) {
-    alerts.value.splice(index, 1)
-  }
+    const index = alerts.value.findIndex(alert => alert.id === id)
+    if (index > -1) {
+        alerts.value.splice(index, 1)
+    }
 }
 
 provide('addAlert', addAlert)
 provide('removeAlert', removeAlert)
+
+const getAlertVariant = (type: AlertItem['type']): AlertVariants['variant'] => {
+    switch (type) {
+        case 'success':
+            return 'default'
+        case 'error':
+            return 'destructive'
+        default:
+            return 'default'
+    }
+}
 </script>
 
-<style scoped>
-.alert-enter-active,
-.alert-leave-active {
-  transition: all 0.3s ease;
-}
-
-.alert-enter-from,
-.alert-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
-}
-</style>
+<template>
+    <div aria-live="polite" class="fixed right-4 top-4 z-50 flex flex-col gap-2">
+        <TransitionGroup enter-active-class="transition duration-300 ease-out"
+            enter-from-class="transform translate-x-full opacity-0" enter-to-class="transform translate-x-0 opacity-100"
+            leave-active-class="transition duration-200 ease-in" leave-from-class="transform translate-x-0 opacity-100"
+            leave-to-class="transform translate-x-full opacity-0">
+            <Alert v-for="alert in alerts" :key="alert.id" :variant="getAlertVariant(alert.type)"
+                class="w-[400px] shadow-lg">
+                <AlertTitle v-if="alert.title">
+                    {{ alert.title }}
+                </AlertTitle>
+                <AlertDescription>
+                    {{ alert.message }}
+                </AlertDescription>
+                <button
+                    class="absolute right-2 top-2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    @click="() => removeAlert(alert.id)">
+                    <Icon name="heroicons:x-mark" class="h-4 w-4" />
+                    <span class="sr-only">关闭</span>
+                </button>
+            </Alert>
+        </TransitionGroup>
+    </div>
+    <slot />
+</template>

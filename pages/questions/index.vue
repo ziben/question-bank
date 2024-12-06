@@ -18,7 +18,7 @@ const { data, refresh, error: fetchError } = await useFetch<PaginatedResponse<Qu
   }))
 })
 
-const questions = computed(() => data.value?.questions || [])
+const questions = computed(() => data.value?.items || [])
 const pagination = computed(() => data.value?.pagination)
 
 // 监听获取数据的错误

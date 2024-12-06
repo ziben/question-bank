@@ -1,29 +1,35 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 export default defineNuxtConfig({
-  
   // 开发工具
   devtools: { enabled: true },
 
+  // 插件配置
+  plugins: [
+    '~/plugins/api.ts'
+  ],
+
   // 模块配置
   modules: [
+    'vuetify-nuxt-module',
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
     'shadcn-nuxt',
-    'nuxt-icon',
     '@nuxtjs/google-fonts',
-    '@nuxtjs/color-mode'
+    '@nuxtjs/color-mode',
+    '@nuxt/icon',
+    '@vueuse/nuxt',
   ],
-
   // Shadcn UI 配置
   shadcn: {
     prefix: '',
-    componentDir: './components/ui'
+    componentDir: './components/shadcn',
   },
 
   // Google Fonts 配置
   googleFonts: {
     families: {
-      'Inter': [100, 200, 300, 400, 500, 600, 700, 800, 900],
+      Inter: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     },
     display: 'swap',
     download: true,
@@ -51,7 +57,7 @@ export default defineNuxtConfig({
   typescript: {
     shim: false,
     strict: true,
-    typeCheck: true
+    typeCheck: true,
   },
 
   // 应用配置
@@ -61,12 +67,12 @@ export default defineNuxtConfig({
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: '现代化的题库管理系统' }
+        { name: 'description', content: '现代化的题库管理系统' },
       ],
       htmlAttrs: {
-        lang: 'zh-CN'
-      }
-    }
+        lang: 'zh-CN',
+      },
+    },
   },
 
   // 兼容性日期
@@ -75,21 +81,21 @@ export default defineNuxtConfig({
   // 运行时配置
   runtimeConfig: {
     public: {
-      apiBase: '/api'
-    }
+      apiBase: '/api',
+    },
   },
 
   // 构建优化
   build: {
-    transpile: ['vue-toastification']
+    transpile: ['vue-toastification'],
   },
 
   // Nitro 配置
   nitro: {
     compressPublicAssets: true,
     routeRules: {
-      '/api/**': { cors: true }
-    }
+      '/api/**': { cors: true },
+    },
   },
 
   // 实验性功能
@@ -98,6 +104,18 @@ export default defineNuxtConfig({
     componentIslands: true,
     payloadExtraction: true,
     typedPages: true,
-    viewTransition: true
-  }
+    viewTransition: true,
+    renderJsonPayloads: true,
+  },
+
+  // 静态页面预渲染
+  routeRules: {
+    '/': { prerender: true },
+    // API 路由缓存
+    '/api/**': { cache: { maxAge: 60 } },
+  },
+
+  imports: {
+    dirs: ['stores'],
+  },
 })

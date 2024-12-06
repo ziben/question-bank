@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import type { DifficultyLevel } from '~/types';
 
-// Add route type definition
-interface RouteParams {
-  id: string
-}
 const route = useRoute()
-// Type assertion for route params
-const params = route.params as RouteParams
 const router = useRouter()
 
 interface Category {
@@ -54,7 +48,7 @@ const difficulties = [
 ]
 
 const { data: categories } = await useFetch<Category[]>('/api/categories')
-const { data: question } = await useFetch<Question>(`/api/questions/${params.id}`)
+const { data: question } = await useFetch<Question>(`/api/questions/${route.params.id}`)
 
 // 加载题目数据
 watchEffect(() => {
@@ -108,7 +102,7 @@ const selectedCategory = computed(() => {
 
 const handleSubmit = async () => {
   try {
-    await $fetch(`/api/questions/${params.id}`, {
+    await $fetch(`/api/questions/${route.params.id}`, {
       method: 'PUT',
       body: {
         title: formData.value.title,

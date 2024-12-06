@@ -6,10 +6,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+} from '@/components/shadcn/table'
+import { Button } from '@/components/shadcn/button'
+import { Input } from '@/components/shadcn/input'
+import { Textarea } from '@/components/shadcn/textarea'
 import {
   Dialog,
   DialogContent,
@@ -17,12 +17,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+} from '@/components/shadcn/dialog'
 import { Plus, Search, Pencil, Trash, Loader2, AlertCircle } from 'lucide-vue-next'
 import { debouncedRef } from '@vueuse/core'
 import { getErrorMessage } from '~/utils/error'
 import { validateSubject } from '~/utils/validation'
+
+const authStore = useAuthStore()
 
 interface Subject {
   id: number

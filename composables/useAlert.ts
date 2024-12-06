@@ -34,6 +34,6 @@ export function useAlert() {
     error,
     warning,
     info,
-    removeAlert
+    removeAlert,
   }
 }

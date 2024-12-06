@@ -1,12 +1,11 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <NuxtLoadingIndicator />
-    <AlertProvider>
-      <NuxtLayout>
+  <AlertProvider>
+    <NuxtLayout>
+      <v-app>
         <NuxtPage />
-      </NuxtLayout>
-    </AlertProvider>
-  </div>
+      </v-app>
+    </NuxtLayout>
+  </AlertProvider>
 </template>
 
 <script setup lang="ts">
@@ -39,7 +38,7 @@ useHead({
 
 <style>
 html {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

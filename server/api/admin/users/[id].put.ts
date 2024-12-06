@@ -59,7 +59,8 @@ export default defineEventHandler(async (event) => {
   const updateData: any = {
     username,
     email,
-    role
+    role,
+    updatedBy: { connect: { id: event.context.user.id } }
   }
 
   // 如果提供了新密码，则更新密码
@@ -74,9 +75,20 @@ export default defineEventHandler(async (event) => {
       id: true,
       username: true,
       email: true,
-      role: true,
       createdAt: true,
-      updatedAt: true
+      updatedAt: true,
+      createdBy: {
+        select: {
+          id: true,
+          username: true
+        }
+      },
+      updatedBy: {
+        select: {
+          id: true,
+          username: true
+        }
+      }
     }
   })
 

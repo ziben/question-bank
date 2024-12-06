@@ -101,9 +101,10 @@ import { BookOpen, BookmarkIcon, TrendingUp, CalendarDays } from 'lucide-vue-nex
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from '@/components/shadcn/card'
 import {
   Table,
   TableBody,
@@ -111,7 +112,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/shadcn/table'
 import { DifficultyLevelLabels, type DifficultyLevel } from '~/types'
 import { QuestionTypeLabels, type QuestionType } from '~/types'
 

@@ -6,9 +6,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+} from '@/components/shadcn/table'
+import { Button } from '@/components/shadcn/button'
+import { Input } from '@/components/shadcn/input'
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
+} from '@/components/shadcn/dialog'
 import { Plus, Search, Pencil, Trash } from 'lucide-vue-next'
 
 interface Grade {

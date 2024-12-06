@@ -14,12 +14,30 @@ export default defineEventHandler(async (event) => {
 
   // 检查是否是最后一个管理员
   const user = await prisma.user.findUnique({
-    where: { id }
+    where: { id },
+    include: {
+      roles: {
+        include: {
+          role: true
+        }
+      }
+    }
   })
 
-  if (user?.role === 'ADMIN') {
+  const isAdmin = user?.roles.some(ur => ur.role.name === 'ADMIN')
+  
+  if (isAdmin) {
+    // 统计有管理员角色的用户数量
     const adminCount = await prisma.user.count({
-      where: { role: 'ADMIN' }
+      where: {
+        roles: {
+          some: {
+            role: {
+              name: 'ADMIN'
+            }
+          }
+        }
+      }
     })
 
     if (adminCount <= 1) {

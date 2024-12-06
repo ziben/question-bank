@@ -1,5 +1,5 @@
-import type { NuxtApp } from "#app"
-import type { Role } from "./permission"
+import type { NuxtApp } from '#app'
+import type { Role } from './permission'
 
 // Base interfaces
 interface BaseEntity {
@@ -27,9 +27,9 @@ export type QuestionType = 'multiple_choice' | 'true_false' | 'essay'
 export type DifficultyLevel = 1 | 2 | 3 | 4 | 5
 
 export const QuestionTypeLabels: Record<QuestionType, string> = {
-  'multiple_choice': '选择题',
-  'true_false': '判断题',
-  'essay': '简答题'
+  multiple_choice: '选择题',
+  true_false: '判断题',
+  essay: '简答题',
 }
 
 export const DifficultyLevelLabels: Record<DifficultyLevel, string> = {
@@ -37,7 +37,7 @@ export const DifficultyLevelLabels: Record<DifficultyLevel, string> = {
   2: '★★',
   3: '★★★',
   4: '★★★★',
-  5: '★★★★★'
+  5: '★★★★★',
 }
 
 export interface Category extends BaseNamedEntity {
@@ -85,14 +85,16 @@ export interface QuestionFormData {
 }
 
 // Pagination types
+export interface PaginationMeta {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 export interface PaginatedResponse<T> {
-  questions: T[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
+  items: T[]
+  pagination: PaginationMeta
 }
 
 // Statistics types
@@ -102,3 +104,34 @@ export interface QuestionStats {
   byType: Record<QuestionType, number>
   byCategory: Record<number, number>
 }
+
+// 使用 const 对象替代 enum
+export const ApiStatus = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+  LOADING: 'loading',
+} as const
+
+export type ApiStatusType = (typeof ApiStatus)[keyof typeof ApiStatus]
+
+// API 响应类型
+export type ApiResponse<T> = {
+  code: number
+  data: T
+  message: string
+  status?: number
+}
+
+// 通用的分页请求参数
+export type PaginationParams = {
+  page: number
+  limit: number
+  sort?: string
+  order?: 'asc' | 'desc'
+}
+
+// 通用的查询参数
+export type QueryParams = {
+  search?: string
+  filter?: Record<string, any>
+} & Partial<PaginationParams>
