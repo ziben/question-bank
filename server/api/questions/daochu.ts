@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { H3Event } from 'h3'
 import { Readable } from 'stream'
+import xlsx from 'node-xlsx'
 
 const prisma = new PrismaClient()
 
@@ -155,39 +156,34 @@ export default defineEventHandler(async (event: H3Event) => {
         setHeader(event, 'Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         setHeader(event, 'Content-Disposition', `attachment; filename=${filename}.xlsx`)
 
-        const workbook = book_new()
-        const worksheet = aoa_to_sheet([
+        const data = [
           [
             'ID', 'Title', 'Content', 'Type', 'Difficulty',
             'Options', 'Answer', 'Explanation', 'Category',
             'Tags', 'Created By', 'Created At'
           ]
-        ])
+        ]
 
-        let row = 1
         for await (const batch of fetchQuestionsBatch(where)) {
-          const data = batch.map(q => [
-            q.id,
-            q.title,
-            q.content,
-            q.type,
-            q.difficulty,
-            Array.isArray(q.options) ? JSON.stringify(q.options) : '',
-            q.answer,
-            q.explanation || '',
-            q.category.name,
-            '',
-            q.createdBy?.name || q.createdBy?.username,
-            new Date(q.createdAt).toISOString()
-          ])
-
-          sheet_add_aoa(worksheet, data, { origin: row })
-          row += batch.length
+          for (const q of batch) {
+            data.push([
+              String(q.id),
+              q.title,
+              q.content,
+              q.type,
+              String(q.difficulty),
+              String(q.options),
+              q.answer,
+              String(q.explanation),
+              String(q.category),
+              '',
+              q.createdBy?.name ?? '',
+              new Date(q.createdAt).toISOString()
+            ])
+          }
         }
 
-        book_append_sheet(workbook, worksheet, 'Questions')
-        const buffer = write(workbook, { type: 'buffer', bookType: 'xlsx' })
-
+        const buffer = xlsx.build([{ name: 'Questions', data, options: {} }])
         return buffer
       }
     }
