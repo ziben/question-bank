@@ -67,43 +67,9 @@ export default defineEventHandler(async (event) => {
         console.error('获取权限列表失败:', error)
         throw createError({
           statusCode: 400,
-          message: error instanceof z.ZodError 
-            ? '无效的查询参数' 
+          message: error instanceof z.ZodError
+            ? '无效的查询参数'
             : '获取权限列表失败'
-        })
-      }
-
-    case 'POST':
-      // 创建新权限
-      try {
-        const body = await readBody(event)
-        const validatedData = createPermissionSchema.parse(body)
-
-        // 检查权限名是否已存在
-        const existingPermission = await prisma.permission.findUnique({
-          where: { name: validatedData.name }
-        })
-
-        if (existingPermission) {
-          throw createError({
-            statusCode: 400,
-            message: '权限名已存在'
-          })
-        }
-
-        // 创建权限
-        const permission = await prisma.permission.create({
-          data: validatedData
-        })
-
-        return permission
-      } catch (error) {
-        console.error('创建权限失败:', error)
-        throw createError({
-          statusCode: 400,
-          message: error instanceof z.ZodError 
-            ? '无效的权限数据' 
-            : '创建权限失败'
         })
       }
 

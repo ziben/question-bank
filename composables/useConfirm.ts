@@ -51,11 +51,13 @@ export function useConfirm(opt?: ConfirmOptions) {
       confirmButton: {
         ...defaultOptions.confirmButton,
         ...opt?.confirmButton,
+        text: opt?.confirmButton?.text ?? 'Confirm',
         variant: opt?.type === 'error' ? 'destructive' : (opt?.confirmButton?.variant || defaultOptions.confirmButton?.variant)
       },
       cancelButton: {
         ...defaultOptions.cancelButton,
-        ...opt?.cancelButton
+        ...opt?.cancelButton,
+        text: opt?.confirmButton?.text ?? 'Cancel',
       }
     }
     isOpen.value = true

@@ -50,7 +50,7 @@
             <div>
               <p class="font-medium">{{ formatAction(log.action) }}</p>
               <p class="text-sm text-gray-500">
-                由 {{ log.user.username }} 在 {{ formatDateTime(log.timestamp) }} 操作
+                由 {{ log.userId }} 在 {{ log.timestamp }} 操作
               </p>
             </div>
             <Button
@@ -92,11 +92,11 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="text-sm font-medium text-gray-500">操作时间</label>
-                <p>{{ formatDateTime(detailsDialog.data.timestamp) }}</p>
+                <p>{{ detailsDialog.data.timestamp }}</p>
               </div>
               <div>
                 <label class="text-sm font-medium text-gray-500">操作用户</label>
-                <p>{{ detailsDialog.data.user.username }}</p>
+                <p>{{ detailsDialog.data.userId }}</p>
               </div>
               <div>
                 <label class="text-sm font-medium text-gray-500">IP地址</label>
@@ -109,12 +109,12 @@
             </div>
             <div>
               <label class="text-sm font-medium text-gray-500">变更前</label>
-              <pre v-if="detailsDialog.data.details.before" class="mt-1 p-2 bg-gray-50 rounded text-sm overflow-auto">{{ JSON.stringify(detailsDialog.data.details.before, null, 2) }}</pre>
+              <pre v-if="detailsDialog.data.details" class="mt-1 p-2 bg-gray-50 rounded text-sm overflow-auto">{{ JSON.stringify(detailsDialog.data.details, null, 2) }}</pre>
               <p v-else class="mt-1 text-gray-500">无</p>
             </div>
             <div>
               <label class="text-sm font-medium text-gray-500">变更后</label>
-              <pre v-if="detailsDialog.data.details.after" class="mt-1 p-2 bg-gray-50 rounded text-sm overflow-auto">{{ JSON.stringify(detailsDialog.data.details.after, null, 2) }}</pre>
+              <pre v-if="detailsDialog.data.details" class="mt-1 p-2 bg-gray-50 rounded text-sm overflow-auto">{{ JSON.stringify(detailsDialog.data.details, null, 2) }}</pre>
               <p v-else class="mt-1 text-gray-500">无</p>
             </div>
           </div>
@@ -131,6 +131,8 @@
 import { ref, reactive } from 'vue'
 import { format } from 'date-fns'
 import { useToast } from '@/composables/useToast'
+import type { SystemLog } from '@prisma/client';
+import type { PaginatedResponse } from '~/types';
 
 const toast = useToast()
 
@@ -154,12 +156,12 @@ const moduleOptions = [
 const loading = ref(false)
 
 // 审计日志数据
-const auditLogs = ref([])
+const auditLogs = ref<SystemLog[]>([])
 
 // 详情对话框
 const detailsDialog = reactive({
   open: false,
-  data: null as any
+  data: null as SystemLog | null
 })
 
 // 获取审计日志
@@ -171,13 +173,13 @@ const fetchAuditLogs = async () => {
 
   try {
     loading.value = true
-    const response = await $fetch('/api/admin/logs/audit', {
+    const response = await useFetch<PaginatedResponse<SystemLog>>('/api/admin/logs/audit', {
       params: {
         module: filters.module,
         targetId: filters.targetId
       }
     })
-    auditLogs.value = response
+    auditLogs.value = response.data.value?.items || []
   } catch (error) {
     toast.error('获取审计日志失败')
     console.error('Failed to fetch audit logs:', error)

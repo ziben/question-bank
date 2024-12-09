@@ -1,10 +1,11 @@
 import { defineEventHandler, getQuery } from 'h3'
+import { hasPermission } from '~/server/utils/auth'
 import { Logger } from '~/server/utils/logger'
 
 export default defineEventHandler(async (event) => {
   // 验证权限
   const user = event.context.user
-  if (!user || !user.roles.some(role => role.permissions.includes('VIEW_LOGS'))) {
+  if (!user || !hasPermission(user, 'VIEW_LOGS')) {
     throw createError({
       statusCode: 403,
       message: '没有权限查看审计日志'
@@ -42,7 +43,8 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     console.error('Failed to get audit trail:', error)
     throw createError({
-      statusCode: error.message === '查询超时' ? 504 : 500,
-      message: error.message === '查询超时' ? '查询超时，请稍后再试' : '获取审计记录失败'    })
+      statusCode: isNuxtError(error) ? error.message === '查询超时' ? 504 : 500 : 500,
+      message: isNuxtError(error) ? error.message === '查询超时' ? '查询超时，请缩小查询范围' : '获取审计记录失败' : '获取审计记录失败'
+    })
   }
 })

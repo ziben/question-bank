@@ -46,14 +46,15 @@
         <div class="flex items-center space-x-2">
           <p class="text-sm font-medium">每页显示</p>
           <Select
-            v-model="localPageSize"
+            :model-value="String(localPageSize)"
+            @update:model-value="localPageSize = Number($event)"
             class="h-8 w-[70px]"
           >
             <SelectTrigger>
-              <SelectValue :placeholder="localPageSize" />
+              <SelectValue :placeholder="String(localPageSize)" :value="localPageSize" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="size in pageSizes" :key="size" :value="size">
+              <SelectItem v-for="size in pageSizes" :key="size" :value="String(size)">
                 {{ size }}
               </SelectItem>
             </SelectContent>
@@ -87,7 +88,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { SearchIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import { Input } from '@/components/shadcn/input'
 import { Button } from '@/components/shadcn/button'
 import {

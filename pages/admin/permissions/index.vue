@@ -85,8 +85,8 @@
           </DialogDescription>
         </DialogHeader>
         <Form
-          :validation-schema="permissionSchema"
-          @submit="savePermission"
+          :validation-schema="permissionFormSchema"
+          @submit="form.handleSubmit(savePermission)"
           v-slot="{ errors }"
           class="space-y-4"
         >
@@ -97,7 +97,6 @@
                 <Field
                   name="module"
                   v-slot="{ field }"
-                  :rules="{ required: true }"
                 >
                   <Select
                     v-bind="field"
@@ -133,7 +132,6 @@
                 <Field
                   name="action"
                   v-slot="{ field }"
-                  :rules="{ required: true }"
                 >
                   <Select
                     v-bind="field"
@@ -163,7 +161,6 @@
               <Field
                 name="description"
                 v-slot="{ field }"
-                :rules="{ required: true }"
               >
                 <Input
                   id="description"
@@ -193,11 +190,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useForm } from 'vee-validate'
+import { ref, computed, watch, onMounted } from 'vue'
 import { SearchIcon, PlusIcon, MoreHorizontalIcon, PencilIcon, TrashIcon } from 'lucide-vue-next'
 import { useConfirm } from '@/composables/useConfirm'
 import type { Permission, Role } from '@prisma/client'
+import { useForm } from 'vee-validate'
+import * as z from 'zod'
+import { toTypedSchema } from '@vee-validate/zod'
 
 interface PermissionWithRoles extends Permission {
   roles: Role[]
@@ -247,12 +246,35 @@ const searchQuery = ref('')
 
 const confirm = useConfirm()
 
-// 表单验证规则
-const permissionSchema = {
-  module: 'required',
-  action: 'required',
-  description: 'required|min:2'
+// Permission form schema
+const permissionFormSchema = toTypedSchema(
+  z.object({
+    module: z.string().min(1, {
+      message: '请选择所属模块'
+    }),
+    action: z.string().min(1, {
+      message: '请选择操作类型'
+    }),
+    description: z.string().min(2, {
+      message: '描述至少需要2个字符'
+    })
+  })
+)
+
+type PermissionFormValues = {
+  module: string;
+  action: string;
+  description: string;
 }
+
+const form = useForm({
+  validationSchema: permissionFormSchema,
+  initialValues: {
+    module: '',
+    action: '',
+    description: ''
+  }
+})
 
 // 获取权限列表
 async function fetchPermissions() {
@@ -288,11 +310,7 @@ function openPermissionDialog(permission: PermissionWithRoles | null = null) {
 }
 
 // 保存权限信息
-const { handleSubmit } = useForm({
-  validationSchema: permissionSchema
-})
-
-const savePermission = handleSubmit(async (values) => {
+async function savePermission(values: PermissionFormValues) {
   const permissionName = `${values.module}.${values.action}`
   
   try {
@@ -322,11 +340,11 @@ const savePermission = handleSubmit(async (values) => {
   } finally {
     saving.value = false
   }
-})
+}
 
 // 删除权限
 async function deletePermission(permission: Permission) {
-  const confirmed = await confirm({
+  const confirmed = await useConfirm({
     title: '确认删除',
     content: `确定要删除权限 "${permission.name}" 吗？此操作不可恢复。`,
     type: 'error',

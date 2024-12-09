@@ -6,7 +6,7 @@ export default defineNuxtConfig({
 
   // 插件配置
   plugins: [
-    '~/plugins/api.ts'
+    // '~/plugins/api.ts'
   ],
 
   // 模块配置
@@ -57,7 +57,7 @@ export default defineNuxtConfig({
   typescript: {
     shim: false,
     strict: true,
-    typeCheck: true,
+    // typeCheck: true,
   },
 
   // 应用配置
@@ -98,24 +98,5 @@ export default defineNuxtConfig({
     },
   },
 
-  // 实验性功能
-  experimental: {
-    asyncContext: true,
-    componentIslands: true,
-    payloadExtraction: true,
-    typedPages: true,
-    viewTransition: true,
-    renderJsonPayloads: true,
-  },
 
-  // 静态页面预渲染
-  routeRules: {
-    '/': { prerender: true },
-    // API 路由缓存
-    '/api/**': { cache: { maxAge: 60 } },
-  },
-
-  imports: {
-    dirs: ['stores'],
-  },
 })

@@ -28,6 +28,8 @@
 import { ref, onMounted } from 'vue'
 import LogFilter from '@/components/logs/LogFilter.vue'
 import LogList from '@/components/logs/LogList.vue'
+import type { PaginatedResponse } from '~/types';
+import type { SystemLog } from '@prisma/client';
 
 // 分页参数
 const currentPage = ref(1)
@@ -46,12 +48,12 @@ const filters = ref({
 })
 
 // 日志数据
-const logs = ref([])
+const logs = ref<SystemLog[]>([])
 
 // 获取日志数据
 const fetchLogs = async () => {
   try {
-    const response = await useFetch('/api/admin/logs', {
+    const response = await useFetch<PaginatedResponse<SystemLog>>('/api/admin/logs', {
       query: {
         page: currentPage.value,
         pageSize: pageSize.value,
@@ -61,7 +63,7 @@ const fetchLogs = async () => {
 
     if (response.data.value) {
       logs.value = response.data.value.items
-      total.value = response.data.value.total
+      total.value = response.data.value.pagination.total
     }
   } catch (error) {
     console.error('Failed to fetch logs:', error)

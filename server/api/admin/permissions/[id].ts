@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { defineEventHandler } from 'h3'
+import { defineEventHandler, H3Error } from 'h3'
 import { z } from 'zod'
 
 const prisma = new PrismaClient()
@@ -12,7 +12,7 @@ const updatePermissionSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const id = parseInt(event.context.params.id)
+  const id = parseInt(event.context.params?.id ?? '')
   if (isNaN(id)) {
     throw createError({
       statusCode: 400,
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
         const permission = await prisma.permission.findUnique({
           where: { id },
           include: {
-            rolePermissions: {
+            roles: {
               include: {
                 role: true
               }
@@ -45,15 +45,12 @@ export default defineEventHandler(async (event) => {
         }
 
         // 转换数据结构
-        return {
-          ...permission,
-          roles: permission.rolePermissions.map(rp => rp.role)
-        }
+        return permission
       } catch (error) {
         console.error('获取权限详情失败:', error)
         throw createError({
-          statusCode: error.statusCode || 500,
-          message: error.message || '获取权限详情失败'
+          statusCode: error instanceof H3Error ? error.statusCode : 500,
+          message: error instanceof H3Error ? error.message : '获取权限详情失败'
         })
       }
 
@@ -94,7 +91,7 @@ export default defineEventHandler(async (event) => {
           where: { id },
           data: validatedData,
           include: {
-            rolePermissions: {
+            roles: {
               include: {
                 role: true
               }
@@ -102,17 +99,12 @@ export default defineEventHandler(async (event) => {
           }
         })
 
-        return {
-          ...permission,
-          roles: permission.rolePermissions.map(rp => rp.role)
-        }
+        return permission
       } catch (error) {
         console.error('更新权限失败:', error)
         throw createError({
-          statusCode: error instanceof z.ZodError ? 400 : 500,
-          message: error instanceof z.ZodError 
-            ? '无效的权限数据' 
-            : error.message || '更新权限失败'
+          statusCode: error instanceof H3Error ? error.statusCode : 500,
+          message: error instanceof H3Error ? error.message : '更新权限失败'
         })
       }
 
@@ -123,7 +115,7 @@ export default defineEventHandler(async (event) => {
         const permission = await prisma.permission.findUnique({
           where: { id },
           include: {
-            rolePermissions: true
+            roles: true
           }
         })
 
@@ -135,7 +127,7 @@ export default defineEventHandler(async (event) => {
         }
 
         // 检查权限是否被使用
-        if (permission.rolePermissions.length > 0) {
+        if (permission.roles.length > 0) {
           throw createError({
             statusCode: 400,
             message: '权限正在被使用，无法删除'
@@ -153,8 +145,8 @@ export default defineEventHandler(async (event) => {
       } catch (error) {
         console.error('删除权限失败:', error)
         throw createError({
-          statusCode: error.statusCode || 500,
-          message: error.message || '删除权限失败'
+          statusCode: error instanceof H3Error ? error.statusCode : 500,
+          message: error instanceof H3Error ? error.message : '删除权限失败'
         })
       }
 

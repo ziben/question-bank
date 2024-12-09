@@ -6,6 +6,11 @@ const prisma = new PrismaClient()
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const { name, description, roles } = body
+  // 获取当前用户信息
+  const user = event.context.user
+  if (!user?.id) {
+    throw new Error('未登录或无权限')
+  }
 
   if (!name) {
     throw new Error('权限名称不能为空')
@@ -25,6 +30,8 @@ export default defineEventHandler(async (event) => {
     data: {
       name,
       description,
+      createdBy: user.id,
+      updatedBy: user.id,
       // 如果提供了角色列表，则建立关联
       ...(roles?.length ? {
         roles: {

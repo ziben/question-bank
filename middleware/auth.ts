@@ -1,7 +1,7 @@
 import { getUserFromEvent, hasPermission, hasAnyRole } from '~/server/utils/auth'
 
 // 权限映射表
-const PERMISSION_MAP = {
+const PERMISSION_MAP: { [key: string]: string } = {
   // 用户管理
   'GET:/api/admin/users': 'user.read',
   'POST:/api/admin/users': 'user.create',

@@ -155,9 +155,8 @@ export default defineEventHandler(async (event: H3Event) => {
         setHeader(event, 'Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         setHeader(event, 'Content-Disposition', `attachment; filename=${filename}.xlsx`)
 
-        const XLSX = await import('xlsx')
-        const workbook = XLSX.utils.book_new()
-        const worksheet = XLSX.utils.aoa_to_sheet([
+        const workbook = book_new()
+        const worksheet = aoa_to_sheet([
           [
             'ID', 'Title', 'Content', 'Type', 'Difficulty',
             'Options', 'Answer', 'Explanation', 'Category',
@@ -182,12 +181,12 @@ export default defineEventHandler(async (event: H3Event) => {
             new Date(q.createdAt).toISOString()
           ])
 
-          XLSX.utils.sheet_add_aoa(worksheet, data, { origin: row })
+          sheet_add_aoa(worksheet, data, { origin: row })
           row += batch.length
         }
 
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Questions')
-        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
+        book_append_sheet(workbook, worksheet, 'Questions')
+        const buffer = write(workbook, { type: 'buffer', bookType: 'xlsx' })
 
         return buffer
       }

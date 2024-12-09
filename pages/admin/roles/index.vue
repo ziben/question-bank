@@ -80,43 +80,33 @@
         <DialogHeader>
           <DialogTitle>{{ editingRole ? '编辑角色' : '新建角色' }}</DialogTitle>
         </DialogHeader>
-        <Form
-          :validation-schema="roleSchema"
-          @submit="saveRole"
-          v-slot="{ errors }"
-          class="space-y-4"
-        >
-          <div class="space-y-4">
-            <div class="space-y-2">
-              <Label for="name">角色名称</Label>
-              <Field
-                name="name"
-                v-slot="{ field }"
-                :rules="{ required: true }"
-              >
-                <Input
-                  id="name"
-                  v-bind="field"
-                  :class="{ 'border-destructive': errors.name }"
-                />
-              </Field>
-              <ErrorMessage name="name" class="text-sm text-destructive" />
-            </div>
-            <div class="space-y-2">
-              <Label for="description">角色描述</Label>
-              <Field
-                name="description"
-                v-slot="{ field }"
-              >
-                <Textarea
-                  id="description"
-                  v-bind="field"
-                  :class="{ 'border-destructive': errors.description }"
-                />
-              </Field>
-              <ErrorMessage name="description" class="text-sm text-destructive" />
-            </div>
-          </div>
+        <Form @submit="form.handleSubmit(saveRole)" class="space-y-4">
+          <FormField
+            v-slot="{ componentField }"
+            name="name"
+          >
+            <FormItem>
+              <FormLabel>角色名称</FormLabel>
+              <FormControl>
+                <Input v-bind="componentField" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <FormField
+            v-slot="{ componentField }"
+            name="description"
+          >
+            <FormItem>
+              <FormLabel>角色描述</FormLabel>
+              <FormControl>
+                <Textarea v-bind="componentField" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
           <DialogFooter>
             <Button
               type="button"
@@ -163,7 +153,7 @@
                 <Checkbox
                   :id="'permission-' + permission.id"
                   v-model="selectedPermissions"
-                  :value="permission.id"
+                  :value="String(permission.id)"
                 />
                 <div class="grid gap-1.5 leading-none">
                   <label
@@ -198,15 +188,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useForm } from 'vee-validate'
+import { ref, computed, watch, onMounted } from 'vue'
 import { SearchIcon, PlusIcon, MoreHorizontalIcon, PencilIcon, KeyIcon, TrashIcon } from 'lucide-vue-next'
 import { useConfirm } from '@/composables/useConfirm'
 import type { Role, Permission, RolePermission } from '@prisma/client'
-
-interface RoleWithPermissions extends Role {
-  permissions: Permission[]
-}
+import { useForm } from 'vee-validate'
+import * as z from 'zod'
+import { toTypedSchema } from '@vee-validate/zod'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/shadcn/form'
 
 // 表格列定义
 const columns = [
@@ -234,6 +230,10 @@ const columns = [
   }
 ]
 
+interface RoleWithPermissions extends Role {
+  permissions: Permission[]
+}
+
 // 状态管理
 const loading = ref(false)
 const saving = ref(false)
@@ -251,10 +251,48 @@ const searchQuery = ref('')
 
 const confirm = useConfirm()
 
-// 角色表单验证规则
-const roleSchema = {
-  name: 'required|min:2',
-  description: 'string'
+// Role form schema
+const roleFormSchema = toTypedSchema(
+  z.object({
+    name: z.string().min(2, {
+      message: '角色名称至少需要2个字符'
+    }),
+    description: z.string().optional()
+  })
+)
+
+type RoleFormValues = {
+  name: string;
+  description?: string;
+}
+
+const form = useForm({
+  validationSchema: roleFormSchema,
+  initialValues: {
+    name: '',
+    description: ''
+  }
+})
+
+// 打开角色对话框
+function openRoleDialog(role: RoleWithPermissions | null = null) {
+  editingRole.value = role
+  if (role) {
+    form.resetForm({
+      values: {
+        name: role.name,
+        description: role.description || ''
+      }
+    })
+  } else {
+    form.resetForm({
+      values: {
+        name: '',
+        description: ''
+      }
+    })
+  }
+  showRoleDialog.value = true
 }
 
 // 获取角色列表
@@ -321,22 +359,6 @@ function toggleGroupPermissions(groupName: string) {
   }
 }
 
-// 打开角色对话框
-function openRoleDialog(role: RoleWithPermissions | null = null) {
-  editingRole.value = role
-  if (role) {
-    form.resetForm({
-      values: {
-        name: role.name,
-        description: role.description || ''
-      }
-    })
-  } else {
-    form.resetForm()
-  }
-  showRoleDialog.value = true
-}
-
 // 打开权限设置对话框
 async function openPermissionDialog(role: RoleWithPermissions) {
   editingRole.value = role
@@ -344,38 +366,6 @@ async function openPermissionDialog(role: RoleWithPermissions) {
   selectedPermissions.value = role.permissions.map(p => p.id)
   showPermissionDialog.value = true
 }
-
-// 保存角色信息
-const { handleSubmit } = useForm({
-  validationSchema: roleSchema
-})
-
-const saveRole = handleSubmit(async (values) => {
-  try {
-    saving.value = true
-    const url = editingRole.value
-      ? `/api/roles/${editingRole.value.id}`
-      : '/api/roles'
-    const method = editingRole.value ? 'PUT' : 'POST'
-    
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(values)
-    })
-    
-    if (!response.ok) throw new Error('保存失败')
-    
-    showRoleDialog.value = false
-    fetchRoles()
-  } catch (error) {
-    console.error('保存角色失败:', error)
-  } finally {
-    saving.value = false
-  }
-})
 
 // 保存权限设置
 async function savePermissions() {
@@ -406,7 +396,7 @@ async function savePermissions() {
 
 // 删除角色
 async function deleteRole(role: Role) {
-  const confirmed = await confirm({
+  const confirmed = await useConfirm({
     title: '确认删除',
     content: `确定要删除角色 "${role.name}" 吗？此操作不可恢复。`,
     type: 'error',
@@ -450,4 +440,31 @@ watch([currentPage, pageSize, searchQuery], () => {
 onMounted(() => {
   fetchRoles()
 })
+
+async function saveRole(values: RoleFormValues) {
+  try {
+    saving.value = true
+    const url = editingRole.value
+      ? `/api/roles/${editingRole.value.id}`
+      : '/api/roles'
+    const method = editingRole.value ? 'PUT' : 'POST'
+    
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(values)
+    })
+    
+    if (!response.ok) throw new Error('保存失败')
+    
+    showRoleDialog.value = false
+    fetchRoles()
+  } catch (error) {
+    console.error('保存角色失败:', error)
+  } finally {
+    saving.value = false
+  }
+}
 </script>

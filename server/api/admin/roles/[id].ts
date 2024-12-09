@@ -11,7 +11,7 @@ const updateRoleSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const id = parseInt(event.context.params.id)
+  const id = parseInt(event.context.params?.id ?? '')
   if (isNaN(id)) {
     throw createError({
       statusCode: 400,
@@ -56,8 +56,8 @@ export default defineEventHandler(async (event) => {
       } catch (error) {
         console.error('获取角色详情失败:', error)
         throw createError({
-          statusCode: error.statusCode || 500,
-          message: error.message || '获取角色详情失败'
+          statusCode: isNuxtError(error) ? error.statusCode : 500,
+          message: isNuxtError(error) ? error.message : '获取角色详情失败'
         })
       }
 
@@ -156,18 +156,14 @@ export default defineEventHandler(async (event) => {
           })
         })
 
-        return {
-          ...role,
-          permissions: role.permissions.map(rp => rp.permission),
-          users: role.users.map(ur => ur.user)
-        }
+        return role
       } catch (error) {
         console.error('更新角色失败:', error)
         throw createError({
-          statusCode: error instanceof z.ZodError ? 400 : 500,
-          message: error instanceof z.ZodError 
-            ? '无效的角色数据' 
-            : error.message || '更新角色失败'
+          statusCode: isNuxtError(error) ? error.statusCode : 500,
+          message: error instanceof z.ZodError
+            ? '无效的角色数据'
+            : isNuxtError(error) ? error.message : '更新角色失败'
         })
       }
 
@@ -215,8 +211,8 @@ export default defineEventHandler(async (event) => {
       } catch (error) {
         console.error('删除角色失败:', error)
         throw createError({
-          statusCode: error.statusCode || 500,
-          message: error.message || '删除角色失败'
+          statusCode: isNuxtError(error) ? error.statusCode : 500,
+          message: isNuxtError(error) ? error.message : '删除角色失败'
         })
       }
 

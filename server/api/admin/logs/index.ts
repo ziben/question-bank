@@ -51,8 +51,8 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     console.error('Failed to get logs:', error)
     throw createError({
-      statusCode: error.message === '查询超时' ? 504 : 500,
-      message: error.message === '查询超时' ? '查询超时，请缩小查询范围' : '获取日志列表失败'
+      statusCode: isNuxtError(error) ? error.message === '查询超时' ? 504 : 500 : 500,
+      message: isNuxtError(error) ? error.message === '查询超时' ? '查询超时，请缩小查询范围' : '获取日志列表失败' : '获取日志列表失败'
     })
   }
 })

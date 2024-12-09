@@ -76,19 +76,7 @@ export default defineEventHandler(async (event) => {
       username: true,
       email: true,
       createdAt: true,
-      updatedAt: true,
-      createdBy: {
-        select: {
-          id: true,
-          username: true
-        }
-      },
-      updatedBy: {
-        select: {
-          id: true,
-          username: true
-        }
-      }
+      updatedAt: true
     }
   })
 

@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import { Logger } from '~/server/utils/logger'
 import { defineEventHandler, getQuery } from 'h3'
+import { getUserFromEvent, hasPermission } from '~/server/utils/auth'
 
 // 统计查询参数验证模式
 const statisticsQuerySchema = z.object({
@@ -18,8 +19,8 @@ export default defineEventHandler(async (event) => {
   switch (method) {
     case 'GET':
       // 验证权限
-      const user = event.context.user
-      if (!user || !user.roles.some(role => role.permissions.includes('VIEW_LOGS'))) {
+      const user = await getUserFromEvent(event)   
+      if (!user || !hasPermission(user, 'VIEW_LOGS')) {
         throw createError({
           statusCode: 403,
           message: '没有权限查看日志统计'
@@ -68,8 +69,8 @@ export default defineEventHandler(async (event) => {
       } catch (error) {
         console.error('Failed to get statistics:', error)
         throw createError({
-          statusCode: error.message === '统计超时' ? 504 : 500,
-          message: error.message === '统计超时' ? '统计超时，请缩小时间范围' : '获取统计数据失败',
+          statusCode: isNuxtError(error) ? error.message === '查询超时' ? 504 : 500 : 500,
+          message: isNuxtError(error) ? error.message === '查询超时' ? '查询超时，请缩小查询范围' : '获取统计数据失败' : '获取统计数据失败'
         })
       }
 

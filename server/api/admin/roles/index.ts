@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { defineEventHandler, getQuery, readBody, createError } from 'h3'
 import { z } from 'zod'
+import { getUserFromEvent } from '~/server/utils/auth'
 
 const prisma = new PrismaClient()
 
@@ -71,8 +72,8 @@ export default defineEventHandler(async (event) => {
         console.error('获取角色列表失败:', error)
         throw createError({
           statusCode: 400,
-          message: error instanceof z.ZodError 
-            ? '无效的查询参数' 
+          message: error instanceof z.ZodError
+            ? '无效的查询参数'
             : '获取角色列表失败'
         })
       }
@@ -81,6 +82,7 @@ export default defineEventHandler(async (event) => {
       // 创建新角色
       try {
         const body = await readBody(event)
+        const user = await getUserFromEvent(event)
         const validatedData = createRoleSchema.parse(body)
         const { permissionIds, ...roleData } = validatedData
 
@@ -118,6 +120,12 @@ export default defineEventHandler(async (event) => {
         const role = await prisma.role.create({
           data: {
             ...roleData,
+            createdBy: {
+              connect: { id: user?.id },
+            },
+            updatedBy: {
+              connect: { id: user?.id },
+            },
             permissions: permissionIds ? {
               create: permissionIds.map(permissionId => ({
                 permission: {
@@ -135,16 +143,13 @@ export default defineEventHandler(async (event) => {
           }
         })
 
-        return {
-          ...role,
-          permissions: role.permissions.map(rp => rp.permission)
-        }
+        return role
       } catch (error) {
         console.error('创建角色失败:', error)
         throw createError({
           statusCode: 400,
-          message: error instanceof z.ZodError 
-            ? '无效的角色数据' 
+          message: error instanceof z.ZodError
+            ? '无效的角色数据'
             : '创建角色失败'
         })
       }

@@ -59,6 +59,7 @@ import { Input } from '~/components/shadcn/input'
 import { Label } from '~/components/shadcn/label'
 import { Textarea } from '~/components/shadcn/textarea'
 import TagSelector from '~/components/TagSelector.vue'
+import type { Question } from '~/types'
 
 const props = defineProps<{
   questionId?: number
@@ -81,17 +82,17 @@ async function loadQuestion() {
   if (!props.questionId) return
 
   try {
-    const question = await $fetch(`/api/questions/${props.questionId}`)
+    const question = await $fetch<Question>(`/api/questions/${props.questionId}`)
     form.value = {
       title: question.title,
       content: question.content,
       answer: question.answer,
-      analysis: question.analysis || ''
+      analysis: question.explanation || ''
     }
 
     // 转换标签数据为选择器格式
     const tagsByCategory: Record<number, number | number[]> = {}
-    question.tags.forEach((tag: any) => {
+    question.tags?.forEach((tag: any) => {
       const categoryId = tag.category.id
       if (tag.category.allowMultiple) {
         if (!tagsByCategory[categoryId]) {

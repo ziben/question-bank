@@ -127,11 +127,11 @@ const userOptions = ref([])
 // 获取用户列表
 const fetchUsers = async () => {
   try {
-    const response = await useFetch('/api/admin/users')
-    userOptions.value = response.data.value?.map((user: any) => ({
-      value: user.id.toString(),
-      label: user.username
-    })) || []
+    const response = await useFetch('/api/admin/users')    
+    // userOptions.value = response.data.value?.map((user: any) => ({
+    //   value: user.id.toString(),
+    //   label: user.username
+    // })) || []
   } catch (error) {
     console.error('Failed to fetch users:', error)
   }

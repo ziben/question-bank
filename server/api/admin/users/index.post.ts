@@ -50,9 +50,7 @@ export default defineEventHandler(async (event) => {
         create: (roleIds || []).map((roleId: number) => ({
           roleId: roleId
         }))
-      },
-      createdBy: { connect: { id: event.context.user.id } },
-      updatedBy: { connect: { id: event.context.user.id } }
+      }
     }
   })
 
@@ -72,18 +70,6 @@ export default defineEventHandler(async (event) => {
             }
           }
         }
-      },
-      createdBy: {
-        select: {
-          id: true,
-          username: true
-        }
-      },
-      updatedBy: {
-        select: {
-          id: true,
-          username: true
-        }
       }
     }
   })
@@ -102,14 +88,6 @@ export default defineEventHandler(async (event) => {
     email: userWithRoles.email,
     createdAt: userWithRoles.createdAt,
     updatedAt: userWithRoles.updatedAt,
-    createdBy: {
-      id: userWithRoles.createdBy.id,
-      username: userWithRoles.createdBy.username
-    },
-    updatedBy: {
-      id: userWithRoles.updatedBy.id,
-      username: userWithRoles.updatedBy.username
-    },
     roles: userWithRoles.roles.map(ur => ({
       id: ur.role.id,
       name: ur.role.name,

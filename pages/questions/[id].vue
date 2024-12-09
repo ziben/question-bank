@@ -47,8 +47,9 @@ const difficulties = [
   { value: '3', label: '困难' }
 ]
 
+const id = 1
 const { data: categories } = await useFetch<Category[]>('/api/categories')
-const { data: question } = await useFetch<Question>(`/api/questions/${route.params.id}`)
+const { data: question } = await useFetch<Question>(`/api/questions/${id}`)
 
 // 加载题目数据
 watchEffect(() => {
@@ -102,7 +103,7 @@ const selectedCategory = computed(() => {
 
 const handleSubmit = async () => {
   try {
-    await $fetch(`/api/questions/${route.params.id}`, {
+    await useFetch(`/api/questions/${id}`, {
       method: 'PUT',
       body: {
         title: formData.value.title,

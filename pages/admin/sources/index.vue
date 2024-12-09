@@ -39,14 +39,24 @@ const { data: sources, refresh } = await useFetch<Source[]>('/api/sources')
 
 // 搜索
 const searchQuery = ref('')
-const filteredSources = computed(() => {
-  if (!searchQuery.value) return sources.value
-  const query = searchQuery.value.toLowerCase()
-  return sources.value?.filter(source => 
-    source.name.toLowerCase().includes(query) ||
-    source.description?.toLowerCase().includes(query)
-  )
+const filteredSources = computed(() => (sources.value || []).filter(source => 
+  source.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+  source.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
+))
+
+// 分页
+const pageSize = ref(10)
+const currentPage = ref(1)
+const total = computed(() => filteredSources.value.length)
+const paginatedSources = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredSources.value.slice(start, end)
 })
+
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+}
 
 // 新增/编辑对话框
 const showDialog = ref(false)
@@ -191,7 +201,11 @@ const getSourceTypeLabel = (type: string) => {
           { key: 'description', title: '描述' },
           { key: 'createdAt', title: '创建时间' }
         ]"
-        :data="filteredSources"
+        :data="paginatedSources"
+        :total="total"
+        :current-page="currentPage"
+        :page-size="pageSize"
+        @page-change="handlePageChange"
       >
         <template #type="{ value }">
           {{ getSourceTypeLabel(value) }}
