@@ -6,11 +6,21 @@
           <SidebarMenuButton size="lg" class="group py-4">
             <div
               class="flex aspect-square size-10 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
-              <Icon name="heroicons:academic-cap" class="size-6 text-primary" />
+              <Icon name="heroicons:academic-cap" class="size-8 text-primary" />
             </div>
             <div class="grid flex-1 text-left text-sm leading-tight">
               <span class="font-semibold tracking-wide">题库系统</span>
               <span class="text-xs text-muted-foreground">Question Bank</span>
+            </div>
+            <div>
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground w-9 h-9"
+                aria-label="Toggle dark mode" @click="handleToggleTheme()"><svg viewBox="0 0 15 15" width="1.2em"
+                  height="1.2em" class="w-5 h-5 text-foreground">
+                  <path fill="currentColor" fill-rule="evenodd"
+                    d="M2.9.5a.4.4 0 0 0-.8 0v.6h-.6a.4.4 0 1 0 0 .8h.6v.6a.4.4 0 1 0 .8 0v-.6h.6a.4.4 0 0 0 0-.8h-.6zm3 3a.4.4 0 1 0-.8 0v.6h-.6a.4.4 0 1 0 0 .8h.6v.6a.4.4 0 1 0 .8 0v-.6h.6a.4.4 0 0 0 0-.8h-.6zm-4 3a.4.4 0 1 0-.8 0v.6H.5a.4.4 0 1 0 0 .8h.6v.6a.4.4 0 0 0 .8 0v-.6h.6a.4.4 0 0 0 0-.8h-.6zM8.544.982l-.298-.04c-.213-.024-.34.224-.217.4q.211.305.389.632A6.602 6.602 0 0 1 2.96 11.69c-.215.012-.334.264-.184.417q.103.105.21.206l.072.066l.26.226l.188.148l.121.09l.187.131l.176.115q.18.115.37.217l.264.135l.26.12l.303.122l.244.086a6.6 6.6 0 0 0 1.103.26l.317.04l.267.02q.19.011.384.011a6.6 6.6 0 0 0 6.56-7.339l-.038-.277a6.6 6.6 0 0 0-.384-1.415l-.113-.268l-.077-.166l-.074-.148a6.6 6.6 0 0 0-.546-.883l-.153-.2l-.199-.24l-.163-.18l-.12-.124l-.16-.158l-.223-.2l-.32-.26l-.245-.177l-.292-.19l-.321-.186l-.328-.165l-.113-.052l-.24-.101l-.276-.104l-.252-.082l-.325-.09l-.265-.06zm1.86 4.318a7.6 7.6 0 0 0-.572-2.894a5.601 5.601 0 1 1-4.748 10.146a7.6 7.6 0 0 0 3.66-2.51a.749.749 0 0 0 1.355-.442a.75.75 0 0 0-.584-.732q.093-.174.178-.355A1.25 1.25 0 1 0 10.35 6.2q.052-.442.052-.9"
+                    clip-rule="evenodd"></path>
+                </svg></button>
             </div>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -114,6 +124,10 @@
 <script setup lang="ts">
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu } from '@/components/shadcn/sidebar';
 import { BookOpen, ChevronsUpDown, CreditCard, FileText, Frame, History, LogOut, Map, Settings, User, Users, BarChart2, Tags } from 'lucide-vue-next';
+import { useAppStore } from '@/stores/app'
+
+// 主题设置
+const { toggleTheme } = useAppStore()
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -205,6 +219,9 @@ const allNavigationItems = computed(() => {
   return [{ name: '普通菜单', items: navigationItems }]
 })
 
+const handleToggleTheme = () => {
+  toggleTheme()
+}
 const handleLogout = async () => {
   try {
     await authStore.logout()

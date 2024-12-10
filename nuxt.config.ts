@@ -9,7 +9,7 @@ export default defineNuxtConfig({
 
   // 模块配置
   modules: [
-    'vuetify-nuxt-module',
+    // 'vuetify-nuxt-module',
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
     'shadcn-nuxt',
