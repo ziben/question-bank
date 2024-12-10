@@ -6,18 +6,22 @@
       </v-app>
     </NuxtLayout>
   </AlertProvider>
+  <Toaster />
 </template>
 
 <script setup lang="ts">
-
+import { useToast } from '@/components/shadcn/toast/use-toast'
 // 全局 toast 实例
-const toast = useToast()
+const { toast } = useToast()
 provide('toast', toast)
+
+const colorMode = useColorMode()
+colorMode.preference = 'dark'
 
 // 错误处理
 onErrorCaptured((error) => {
   console.error('Captured error:', error)
-  toast.error('发生错误，请稍后重试')
+  toast({ title: '请求失败', description: `${error}` })
   return false
 })
 
@@ -28,7 +32,7 @@ useHead({
     { charset: 'utf-8' },
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
     { name: 'description', content: '一个现代化的题库管理系统' },
-    { name: 'theme-color', content: '#ffffff' }
+    // { name: 'theme-color', content: '#ffffff' }
   ],
   link: [
     { rel: 'icon', type: 'image/png', href: '/favicon.png' }
@@ -46,9 +50,9 @@ html {
 
 body {
   @apply m-0 p-0 min-h-screen;
-  color: rgba(0, 0, 0, 0.85);
-  line-height: 1.5;
-  background-color: #f0f2f5;
+  /* color: rgba(0, 0, 0, 0.85); */
+  /* line-height: 1.5; */
+  /* background-color: #f0f2f5; */
 }
 
 #__nuxt {

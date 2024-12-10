@@ -248,10 +248,10 @@ import {
 } from '@/components/shadcn/dialog'
 import type { QuestionType, DifficultyLevel, QuestionFormData, Subject, Grade, Source } from '~/types'
 import { QuestionTypeLabels, DifficultyLevelLabels } from '~/types'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/components/shadcn/toast/use-toast'
 
 const router = useRouter()
-const toast = useToast()
+const { toast } = useToast()
 
 // 表单数据
 const formData = ref<QuestionFormData>({
@@ -296,10 +296,14 @@ async function handleSubmit() {
       method: 'POST',
       body: formData.value
     })
-    toast.success('创建成功')
+    toast({
+      title: '创建成功'
+    })
     router.push('/questions')
   } catch (error: any) {
-    toast.error(error.data?.message || '创建失败')
+    toast({
+      title: error.data?.message || '创建失败'
+    })
   } finally {
     submitting.value = false
   }

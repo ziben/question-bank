@@ -5,9 +5,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   // 插件配置
-  plugins: [
-    // '~/plugins/api.ts'
-  ],
+  plugins: ['~/plugins/api.ts'],
 
   // 模块配置
   modules: [
@@ -97,6 +95,4 @@ export default defineNuxtConfig({
       '/api/**': { cors: true },
     },
   },
-
-
 })

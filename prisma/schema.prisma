@@ -1,3 +1,10 @@
+generator zod {
+  provider                         = "zod-prisma-types"
+  createOptionalDefaultValuesTypes = true
+  createRelationValuesTypes        = true
+  output                           = "./generated/zod"
+}
+
 generator client {
   provider = "prisma-client-js"
 }

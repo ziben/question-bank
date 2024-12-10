@@ -17,10 +17,10 @@
       </SidebarMenu>
     </SidebarHeader>
     <SidebarContent>
-      <SidebarGroup>
-        <SidebarGroupLabel>导航菜单</SidebarGroupLabel>
+      <SidebarGroup v-for="group in allNavigationItems" :key="group.name">
+        <SidebarGroupLabel>{{ group.name }}</SidebarGroupLabel>
         <SidebarMenu>
-          <template v-for="item in allNavigationItems" :key="item.path">
+          <template v-for="item in group.items" :key="item.path">
             <!-- 带子菜单的项目 -->
             <template v-if="item.children">
               <SidebarMenuItem>
@@ -51,6 +51,7 @@
                 <SidebarMenuButton as-child :tooltip="item.name">
                   <NuxtLink :to="item.path" :class="{ 'bg-accent': route.path === item.path }">
                     <component :is="item.icon" class="size-4" />
+                    <!-- <Icon name="heroicons:chevron-right" class="ml-auto size-4" /> -->
                     <span>{{ item.name }}</span>
                   </NuxtLink>
                 </SidebarMenuButton>
@@ -116,6 +117,11 @@ import { BookOpen, ChevronsUpDown, CreditCard, FileText, Frame, History, LogOut,
 
 const authStore = useAuthStore()
 const route = useRoute()
+
+interface NavigationGroup {
+  name: string
+  items: NavigationItem[]
+}
 
 interface NavigationItem {
   name: string
@@ -194,9 +200,9 @@ const adminItems: NavigationItem[] = [
 
 const allNavigationItems = computed(() => {
   if (authStore.isAdmin) {
-    return [...navigationItems, ...adminItems]
+    return [{ name: '普通菜单', items: navigationItems }, { name: '管理菜单', items: adminItems }]
   }
-  return navigationItems
+  return [{ name: '普通菜单', items: navigationItems }]
 })
 
 const handleLogout = async () => {

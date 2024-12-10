@@ -130,11 +130,11 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { format } from 'date-fns'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/components/shadcn/toast/use-toast'
 import type { SystemLog } from '@prisma/client';
 import type { PaginatedResponse } from '~/types';
 
-const toast = useToast()
+const { toast } = useToast()
 
 // 过滤条件
 const filters = reactive({
@@ -167,7 +167,7 @@ const detailsDialog = reactive({
 // 获取审计日志
 const fetchAuditLogs = async () => {
   if (!filters.module || !filters.targetId) {
-    toast.warning('请选择模块和输入目标ID')
+    toast({title:'请选择模块和输入目标ID'})
     return
   }
 
@@ -181,7 +181,7 @@ const fetchAuditLogs = async () => {
     })
     auditLogs.value = response.data.value?.items || []
   } catch (error) {
-    toast.error('获取审计日志失败')
+    toast({ title: '获取审计日志失败' })
     console.error('Failed to fetch audit logs:', error)
   } finally {
     loading.value = false
