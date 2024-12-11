@@ -37,16 +37,16 @@
                 <DropdownMenu>
                   <DropdownMenuTrigger as-child>
                     <SidebarMenuButton :tooltip="item.name">
-                      <component :is="item.icon" class="size-4" />
+                      <Icon :name="item.icon" class="size-4" mode="svg" />
                       <span>{{ item.name }}</span>
-                      <ChevronsUpDown class="ml-auto size-4" />
+                      <Icon name="lucide:chevrons-up-down" class="ml-auto size-4" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent class="w-[--radix-dropdown-menu-trigger-width] min-w-48">
                     <DropdownMenuGroup>
                       <DropdownMenuItem v-for="child in item.children" :key="child.path">
                         <NuxtLink :to="child.path" class="flex items-center w-full">
-                          <component :is="child.icon" class="mr-2 size-4" />
+                          <Icon :name="child.icon" class="mr-2 size-4" mode="svg" />
                           <span>{{ child.name }}</span>
                         </NuxtLink>
                       </DropdownMenuItem>
@@ -60,8 +60,8 @@
               <SidebarMenuItem>
                 <SidebarMenuButton as-child :tooltip="item.name">
                   <NuxtLink :to="item.path" :class="{ 'bg-accent': route.path === item.path }">
-                    <component :is="item.icon" class="size-4" />
-                    <!-- <Icon name="heroicons:chevron-right" class="ml-auto size-4" /> -->
+                    <!-- <component :is="item.icon" class="size-4" /> -->
+                    <Icon :name="item.icon" class="size-4" mode="svg" />
                     <span>{{ item.name }}</span>
                   </NuxtLink>
                 </SidebarMenuButton>
@@ -88,7 +88,7 @@
                   <span class="font-medium">{{ authStore.user?.username }}</span>
                   <span class="text-xs text-muted-foreground">{{ authStore.user?.email }}</span>
                 </div>
-                <ChevronsUpDown class="ml-auto size-4" />
+                <Icon name="lucide:chevrons-up-down" class="ml-auto size-4" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent class="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg" side="bottom"
@@ -99,17 +99,17 @@
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem>
-                  <User class="mr-2 h-4 w-4" />
+                  <Icon name="lucide:user" class="mr-2 h-4 w-4" />
                   <span>个人信息</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Settings class="mr-2 h-4 w-4" />
+                  <Icon name="lucide:settings" class="mr-2 h-4 w-4" />
                   <span>设置</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem @click="handleLogout" class="text-red-500 focus:text-red-500">
-                <LogOut class="mr-2 h-4 w-4" />
+                <Icon name="lucide:log-out" class="mr-2 h-4 w-4" />
                 <span>退出登录</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -140,7 +140,7 @@ interface NavigationGroup {
 interface NavigationItem {
   name: string
   path: string
-  icon: any
+  icon: string
   children?: NavigationItem[]
 }
 
@@ -148,32 +148,32 @@ const navigationItems: NavigationItem[] = [
   {
     name: '题库管理',
     path: '/questions',
-    icon: Frame
+    icon: 'lucide:shield-question'
   },
   {
     name: '科目管理',
     path: '/admin/subjects',
-    icon: BookOpen
+    icon: 'lucide:shrub'
   },
   {
     name: '年级管理',
     path: '/admin/grades',
-    icon: Users
+    icon: 'lucide:align-vertical-distribute-center'
   },
   {
     name: '来源管理',
     path: '/admin/sources',
-    icon: Map
+    icon: 'lucide:soup'
   },
   {
     name: '分类管理',
     path: '/categories',
-    icon: CreditCard
+    icon: 'lucide:group'
   },
   {
     name: '统计分析',
     path: '/statistics',
-    icon: BarChart2
+    icon: 'lucide:layout-dashboard'
   }
 ]
 
@@ -181,32 +181,42 @@ const adminItems: NavigationItem[] = [
   {
     name: '用户管理',
     path: '/admin/users',
-    icon: Users
+    icon: 'lucide:users'
+  },
+  {
+    name: '角色管理',
+    path: '/admin/roles',
+    icon: 'lucide:group'
+  },
+  {
+    name: '权限管理',
+    path: '/admin/permissions',
+    icon: 'lucide:activity'
   },
   {
     name: '标签管理',
     path: '/admin/tags',
-    icon: Tags
+    icon: 'lucide:tags'
   },
   {
     name: '日志管理',
     path: '/admin/logs',
-    icon: FileText,
+    icon: 'lucide:logs',
     children: [
       {
         name: '操作日志',
         path: '/admin/logs',
-        icon: FileText
+        icon: 'lucide:logs'
       },
       {
         name: '统计分析',
         path: '/admin/logs/statistics',
-        icon: BarChart2
+        icon: 'lucide:logs'
       },
       {
         name: '审计日志',
         path: '/admin/logs/audit',
-        icon: History
+        icon: 'lucide:logs'
       }
     ]
   }
