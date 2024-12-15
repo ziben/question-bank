@@ -1,7 +1,4 @@
 import { defineStore } from 'pinia'
-import { useFetch } from 'nuxt/app'
-import { useRouter } from 'nuxt/app'
-import type { FetchError } from 'ofetch'
 import type { User } from '~/types'
 
 export interface LoginForm {
@@ -20,6 +17,7 @@ export interface AuthState {
   token: string | null
   loading: boolean
   error: string | null
+  status: string | null
 }
 
 // Token 存储的key
@@ -28,7 +26,7 @@ const TOKEN_KEY = 'auth_token'
 // 开发环境下的默认管理员账号
 const DEV_ADMIN = {
   email: 'admin@example.com',
-  password: 'admin123'
+  password: 'admin123',
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -36,32 +34,29 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     token: null,
     loading: false,
-    error: null
+    error: null,
+    status: null,
   }),
 
   getters: {
-    isAuthenticated: (state): boolean => !!state.token && !!state.user,
-    isAdmin: (state): boolean => {
-      if (!state.user?.roles) return false
+    isAuthenticated: (state): boolean => !!state.status && !!state.user,
+    isAdmin: (state): boolean => {      
       return true
     },
-    hasPermission: (state) => (permission: string): boolean => {
-      if (!state.user?.roles) return false
-      return state.user.roles.some(role =>
-        role.permissions.some(p => p === permission)
-      )
-    },
+    hasPermission:
+      (state) =>
+      (permission: string): boolean => {
+        if (!state.user?.roles) return false
+        return state.user.roles.some((role) => role.permissions.some((p) => p === permission))
+      },
     isEditor: (state): boolean => ['editor', 'admin'].includes(state.user?.role || ''),
-    authHeader(): Record<string, string> {
-      return this.token ? { 'Authorization': `Bearer ${this.token}` } : {}
-    }
   },
 
   actions: {
     // 保存token到localStorage
     saveToken(token: string) {
       this.token = token
-      if (process.client) {
+      if (import.meta.client) {
         localStorage.setItem(TOKEN_KEY, token)
       }
     },
@@ -69,7 +64,7 @@ export const useAuthStore = defineStore('auth', {
     // 清除token
     clearToken() {
       this.token = null
-      if (process.client) {
+      if (import.meta.client) {
         localStorage.removeItem(TOKEN_KEY)
       }
     },
@@ -83,87 +78,36 @@ export const useAuthStore = defineStore('auth', {
       this.clearToken()
     },
 
-    // 登录
-    async login(form: LoginForm) {
-      this.loading = true
-      this.error = null
-
-      try {
-        const { data } = await useFetch<LoginResponse>('/api/auth/login', {
-          method: 'POST',
-          body: form
-        })
-
-        if (data.value) {
-          const { token, user } = data.value
-          this.saveToken(token)
-          this.user = user
-          return true
-        }
-        return false
-      } catch (error) {
-        const fetchError = error as FetchError
-        this.error = fetchError.message || '登录失败'
-        return false
-      } finally {
-        this.loading = false
-      }
-    },
-
-    // 退出登录
-    async logout() {
-      try {
-        await useFetch('/api/auth/logout', {
-          method: 'POST',
-          headers: this.authHeader
-        })
-      } catch (error) {
-        console.error('Logout error:', error)
-      } finally {
-        this.resetState()
-      }
-    },
-
     // 检查认证状态
     async checkAuth() {
+      const { status, data, token } = useAuth()
+      this.status = status.value
       // 只在客户端检查 token
-      if (process.client) {
-        const token = localStorage.getItem(TOKEN_KEY)
-        
-        if (!token) {
+      if (import.meta.client) {
+        if (status.value != 'authenticated') {
           // 开发环境下自动登录
-          if (process.dev) {
-            try {
-              await this.login(DEV_ADMIN)
-              return true
-            } catch (error) {
-              console.error('Auto login failed:', error)
-            }
-          }
+          // if (process.dev) {
+          //   try {
+          //     await this.login(DEV_ADMIN)
+          //     return true
+          //   } catch (error) {
+          //     console.error('Auto login failed:', error)
+          //   }
+          // }
           return false
         }
 
-        this.token = token
+        this.token = token.value
       }
 
-      if (!this.token) {
+      if (status.value != 'authenticated') {
         return false
       }
 
       this.loading = true
-
       try {
-        const { data: user } = await useFetch<User>('/api/auth/me', {
-          headers: this.authHeader
-        })
-        
-        if (user.value) {
-          this.user = user.value
-          return true
-        } else {
-          this.resetState()
-          return false
-        }
+        this.user = data.value as User
+        return true
       } catch (error) {
         console.error('Check auth error:', error)
         this.resetState()
@@ -179,6 +123,6 @@ export const useAuthStore = defineStore('auth', {
       if (this.loading) return
 
       await this.checkAuth()
-    }
-  }
+    },
+  },
 })

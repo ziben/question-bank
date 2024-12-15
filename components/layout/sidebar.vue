@@ -108,7 +108,7 @@
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem @click="handleLogout" class="text-red-500 focus:text-red-500">
+              <DropdownMenuItem @click="signOut({ callbackUrl: '/login' })" class="text-red-500 focus:text-red-500">
                 <Icon name="lucide:log-out" class="mr-2 h-4 w-4" />
                 <span>退出登录</span>
               </DropdownMenuItem>
@@ -126,6 +126,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu } fr
 import { BookOpen, ChevronsUpDown, CreditCard, FileText, Frame, History, LogOut, Map, Settings, User, Users, BarChart2, Tags } from 'lucide-vue-next';
 import { useAppStore } from '@/stores/app'
 
+const { signOut } = useAuth()
 // 主题设置
 const { toggleTheme } = useAppStore()
 
@@ -194,11 +195,6 @@ const adminItems: NavigationItem[] = [
     icon: 'lucide:activity'
   },
   {
-    name: '标签管理',
-    path: '/admin/tags',
-    icon: 'lucide:tags'
-  },
-  {
     name: '日志管理',
     path: '/admin/logs',
     icon: 'lucide:logs',
@@ -232,12 +228,5 @@ const allNavigationItems = computed(() => {
 const handleToggleTheme = () => {
   toggleTheme()
 }
-const handleLogout = async () => {
-  try {
-    await authStore.logout()
-    navigateTo('/login')
-  } catch (error) {
-    console.error('Logout failed:', error)
-  }
-}
+
 </script>

@@ -7,7 +7,7 @@
         class="max-w-sm"
       >
         <template #prefix>
-          <NuxtIcon name="search" class="h-4 w-4 text-muted-foreground" />
+          <Icon name="search" class="h-4 w-4 text-muted-foreground" />
         </template>
       </Input>
       <slot name="actions" />

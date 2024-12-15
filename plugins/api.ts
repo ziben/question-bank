@@ -1,7 +1,5 @@
-import { useAuthStore } from '~/stores/auth'
-
 export default defineNuxtPlugin((nuxtApp) => {
-  const authStore = useAuthStore()
+  const { token } = useAuth()
 
   // 全局拦截器配置
   nuxtApp.hooks.hook('app:created', () => {
@@ -10,17 +8,21 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   // 配置全局默认值
   const defaultOptions = {
-    headers: {} as HeadersInit
+    headers: {} as HeadersInit,
   }
 
   globalThis.$fetch = $fetch.create({
     ...defaultOptions,
     onRequest({ options }) {
-      // 合并认证头
-      options.headers = {
-        ...options.headers,
-        ...authStore.authHeader
+      if (token) {
+        const authHeader = { Authorization: `${token.value}` }
+        // 合并认证头
+        options.headers = {
+          ...options.headers,
+          ...authHeader,
+        }
       }
+
       console.log('Request interceptor:', options)
     },
     onResponseError({ response }) {
@@ -31,6 +33,6 @@ export default defineNuxtPlugin((nuxtApp) => {
         // 重定向到登录页
         navigateTo('/login')
       }
-    }
+    },
   })
 })

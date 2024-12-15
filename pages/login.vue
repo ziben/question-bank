@@ -5,7 +5,6 @@
         登录系统
       </h2>
     </div>
-
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
       <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
         <form class="space-y-6" @submit.prevent="handleLogin">
@@ -14,12 +13,7 @@
               邮箱
             </label>
             <div class="mt-1">
-              <Input
-                id="email"
-                v-model="form.email"
-                type="email"
-                required
-              />
+              <Input id="email" v-model="form.email" type="email" required />
             </div>
           </div>
 
@@ -28,22 +22,13 @@
               密码
             </label>
             <div class="mt-1">
-              <Input
-                id="password"
-                v-model="form.password"
-                type="password"
-                required
-              />
+              <Input id="password" v-model="form.password" type="password" required />
             </div>
           </div>
 
           <div class="flex items-center justify-between">
             <div class="flex items-center">
-              <input
-                id="remember-me"
-                v-model="form.remember"
-                type="checkbox"
-              />
+              <input id="remember-me" v-model="form.remember" type="checkbox" />
               <label for="remember-me" class="ml-2 block text-sm text-gray-900">
                 记住我
               </label>
@@ -51,10 +36,7 @@
           </div>
 
           <div>
-            <Button
-              type="submit"
-              :disabled="loading"
-            >
+            <Button type="submit" :disabled="loading">
               {{ loading ? '登录中...' : '登录' }}
             </Button>
           </div>
@@ -78,6 +60,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/shadcn/card'
+import { toast } from '~/components/shadcn/toast'
+definePageMeta({
+  layout: false,
+  auth: {
+    unauthenticatedOnly: true,
+    navigateAuthenticatedTo: '/'
+  }
+});
+
+const { data, status, signIn } = useAuth()
 
 interface LoginForm {
   email: string
@@ -90,18 +82,18 @@ const authStore = useAuthStore()
 const loading = ref(false)
 
 const form = reactive<LoginForm>({
-  email: '',
-  password: '',
-  remember: false
+  email: 'admin@example.com',
+  password: 'admin123',
+  remember: true
 })
 
 const handleLogin = async () => {
   try {
     loading.value = true
-    await authStore.login(form)
+    await signIn(form)
     router.push('/')
   } catch (error: any) {
-    console.error('Login error:', error)
+    toast({ title: '登录失败', description: error })
   } finally {
     loading.value = false
   }

@@ -10,68 +10,97 @@
             class="w-full"
           >
             <template #prefix>
-              <SearchIcon class="h-4 w-4 text-muted-foreground" />
+              <Icon name="lucide:search" class="h-4 w-4 text-muted-foreground" />
             </template>
           </Input>
         </div>
         <Button @click="openRoleDialog()">
-          <PlusIcon class="h-4 w-4 mr-2" />
+          <Icon name="lucide:plus" class="h-4 w-4 mr-2" />
           新建角色
         </Button>
       </div>
     </div>
 
     <Card>
-      <DataTable
-        :columns="columns"
-        :data="roles"
-        :total="total"
-        :loading="loading"
-        :current-page="currentPage"
-        :page-size="pageSize"
-        @page-change="onPageChange"
-        @page-size-change="onPageSizeChange"
-      >
-        <template #permissions="{ value }">
-          <div class="flex flex-wrap gap-2">
-            <Badge
-              v-for="permission in value"
-              :key="permission.id"
-              variant="secondary"
-            >
-              {{ permission.name }}
-            </Badge>
+      <CardHeader class="pb-4">
+        <div class="flex items-center justify-between">
+          <div class="space-y-1">
+            <CardTitle>角色管理</CardTitle>
+            <CardDescription>管理系统中的角色及其权限</CardDescription>
           </div>
-        </template>
-        <template #actions="{ row }">
-          <DropdownMenu>
-            <DropdownMenuTrigger as="div">
-              <Button variant="ghost" size="icon">
-                <MoreHorizontalIcon class="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem @click="openRoleDialog(row)">
-                <PencilIcon class="h-4 w-4 mr-2" />
-                编辑
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="openPermissionDialog(row)">
-                <KeyIcon class="h-4 w-4 mr-2" />
-                权限设置
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                @click="deleteRole(row)"
-                class="text-destructive"
-                :disabled="row.isSystem"
+          <div class="flex items-center gap-4">
+            <div class="relative w-64">
+              <Input
+                v-model="searchQuery"
+                placeholder="搜索角色..."
+                class="w-full"
               >
-                <TrashIcon class="h-4 w-4 mr-2" />
-                删除
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </template>
-      </DataTable>
+                <template #prefix>
+                  <Icon name="lucide:search" class="h-4 w-4 text-muted-foreground" />
+                </template>
+              </Input>
+            </div>
+            <Button @click="openRoleDialog()">
+              <Icon name="lucide:plus" class="h-4 w-4 mr-2" />
+              新建角色
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <MyDataTable
+          :columns="columns"
+          :data="roles"
+          :total="total"
+          :loading="loading"
+          :current-page="currentPage"
+          :page-size="pageSize"
+          @page-change="onPageChange"
+          @page-size-change="onPageSizeChange"
+        >
+          <template #permissions="{ value }">
+            <div class="flex flex-wrap gap-1">
+              <Badge
+                v-for="permission in value"
+                :key="permission.id"
+                variant="secondary"
+                class="text-xs whitespace-nowrap"
+              >
+                {{ permission.name }}
+              </Badge>
+            </div>
+          </template>
+          <template #actions="{ row }">
+            <DropdownMenu>
+              <DropdownMenuTrigger as="div">
+                <Button variant="ghost" size="icon" class="h-8 w-8">
+                  <Icon name="lucide:more-horizontal" class="h-4 w-4" />
+                  <span class="sr-only">打开菜单</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-40">
+                <DropdownMenuItem @click="openRoleDialog(row)">
+                  <Icon name="lucide:pencil" class="h-4 w-4 mr-2" />
+                  编辑
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="openPermissionDialog(row)">
+                  <Icon name="lucide:key" class="h-4 w-4 mr-2" />
+                  权限设置
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  @click="deleteRole(row)"
+                  class="text-destructive focus:text-destructive"
+                  :disabled="row.isSystem"
+                >
+                  <Icon name="lucide:trash-2" class="h-4 w-4 mr-2" />
+                  删除
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </template>
+        </MyDataTable>
+      </CardContent>
     </Card>
 
     <!-- 角色表单对话框 -->
@@ -79,17 +108,23 @@
       <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{{ editingRole ? '编辑角色' : '新建角色' }}</DialogTitle>
+          <DialogDescription>
+            {{ editingRole ? '修改角色信息' : '创建新的角色并设置基本信息' }}
+          </DialogDescription>
         </DialogHeader>
-        <Form @submit="form.handleSubmit(saveRole)" class="space-y-4">
+        <Form @submit="form.handleSubmit(saveRole)" class="space-y-4 py-4">
           <FormField
             v-slot="{ componentField }"
             name="name"
           >
             <FormItem>
-              <FormLabel>角色名称</FormLabel>
+              <FormLabel required>角色名称</FormLabel>
               <FormControl>
-                <Input v-bind="componentField" />
+                <Input v-bind="componentField" placeholder="输入角色名称" />
               </FormControl>
+              <FormDescription>
+                角色名称用于标识不同的用户组，例如：管理员、教师、学生等
+              </FormDescription>
               <FormMessage />
             </FormItem>
           </FormField>
@@ -101,8 +136,15 @@
             <FormItem>
               <FormLabel>角色描述</FormLabel>
               <FormControl>
-                <Textarea v-bind="componentField" />
+                <Textarea 
+                  v-bind="componentField" 
+                  placeholder="输入角色描述信息"
+                  :rows="3"
+                />
               </FormControl>
+              <FormDescription>
+                描述该角色的主要职责和权限范围
+              </FormDescription>
               <FormMessage />
             </FormItem>
           </FormField>
@@ -129,59 +171,67 @@
         <DialogHeader>
           <DialogTitle>权限设置 - {{ editingRole?.name }}</DialogTitle>
           <DialogDescription>
-            为角色分配可访问的权限
+            为角色分配可访问的权限，权限更改将立即生效
           </DialogDescription>
         </DialogHeader>
-        <div class="space-y-6 py-4">
-          <div v-for="(group, key) in permissionGroups" :key="key" class="space-y-4">
-            <div class="flex items-center justify-between">
-              <Label class="text-base">{{ key }}</Label>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                @click="toggleGroupPermissions(key)"
-              >
-                {{ isGroupSelected(key) ? '取消全选' : '全选' }}
-              </Button>
-            </div>
-            <div class="grid grid-cols-3 gap-4">
-              <div
-                v-for="permission in group"
-                :key="permission.id"
-                class="flex items-start space-x-2"
-              >
-                <Checkbox
-                  :id="'permission-' + permission.id"
-                  v-model="selectedPermissions"
-                  :value="String(permission.id)"
-                />
-                <div class="grid gap-1.5 leading-none">
-                  <label
-                    :for="'permission-' + permission.id"
-                    class="text-sm font-medium leading-none cursor-pointer"
-                  >
-                    {{ permission.name }}
-                  </label>
+        <ScrollArea class="h-[60vh] pr-4">
+          <div class="space-y-8 py-4">
+            <div v-for="(group, key) in permissionGroups" :key="key" class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="space-y-1">
+                  <Label class="text-base font-medium">{{ key }}</Label>
                   <p class="text-sm text-muted-foreground">
-                    {{ permission.description }}
+                    选择该模块下的权限
                   </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  @click="toggleGroupPermissions(key)"
+                >
+                  {{ isGroupSelected(key) ? '取消全选' : '全选' }}
+                </Button>
+              </div>
+              <Separator />
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div
+                  v-for="permission in group"
+                  :key="permission.id"
+                  class="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <Checkbox
+                    :id="'permission-' + permission.id"
+                    v-model="selectedPermissions"
+                    :value="String(permission.id)"
+                  />
+                  <div class="grid gap-1.5 leading-none">
+                    <label
+                      :for="'permission-' + permission.id"
+                      class="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      {{ permission.name }}
+                    </label>
+                    <p class="text-sm text-muted-foreground">
+                      {{ permission.description }}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              @click="showPermissionDialog = false"
-            >
-              取消
-            </Button>
-            <Button @click="savePermissions" :loading="savingPermissions">
-              保存
-            </Button>
-          </DialogFooter>
-        </div>
+        </ScrollArea>
+        <DialogFooter class="mt-4">
+          <Button
+            type="button"
+            variant="outline"
+            @click="showPermissionDialog = false"
+          >
+            取消
+          </Button>
+          <Button @click="savePermissions" :loading="savingPermissions">
+            保存更改
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   </div>
@@ -189,9 +239,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { SearchIcon, PlusIcon, MoreHorizontalIcon, PencilIcon, KeyIcon, TrashIcon } from 'lucide-vue-next'
 import { useConfirm } from '@/composables/useConfirm'
-import type { Role, Permission, RolePermission } from '@prisma/client'
+import type { Role, Permission } from '@prisma/client'
 import { useForm } from 'vee-validate'
 import * as z from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
@@ -201,32 +250,54 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
+  FormMessage,
+  FormDescription
 } from '@/components/shadcn/form'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent
+} from '@/components/shadcn/card'
+import { ScrollArea } from '@/components/shadcn/scroll-area'
+import { Separator } from '@/components/shadcn/separator'
+import { useToast } from '@/components/shadcn/toast/use-toast'
 
 // 表格列定义
 const columns = [
   {
     key: 'name',
-    title: '角色名称'
+    title: '角色名称',
+    width: 150
   },
   {
     key: 'description',
-    title: '描述'
+    title: '描述',
+    width: 200
   },
   {
     key: 'permissions',
-    title: '已分配权限'
+    title: '已分配权限',
+    width: 300
   },
   {
     key: 'createdAt',
     title: '创建时间',
-    format: (value: string) => new Date(value).toLocaleString()
+    width: 180,
+    format: (value: string) => new Date(value).toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   },
   {
     key: 'actions',
     title: '操作',
-    width: 100
+    width: 100,
+    align: 'center'
   }
 ]
 
@@ -250,14 +321,19 @@ const pageSize = ref(10)
 const searchQuery = ref('')
 
 const confirm = useConfirm()
+const toast = useToast()
 
 // Role form schema
 const roleFormSchema = toTypedSchema(
   z.object({
     name: z.string().min(2, {
       message: '角色名称至少需要2个字符'
+    }).max(50, {
+      message: '角色名称不能超过50个字符'
     }),
-    description: z.string().optional()
+    description: z.string().max(200, {
+      message: '描述不能超过200个字符'
+    }).optional()
   })
 )
 
@@ -299,7 +375,7 @@ function openRoleDialog(role: RoleWithPermissions | null = null) {
 async function fetchRoles() {
   try {
     loading.value = true
-    const response = await fetch(`/api/roles?page=${currentPage.value}&pageSize=${pageSize.value}&search=${searchQuery.value}`)
+    const response = await fetch(`/api/admin/roles?page=${currentPage.value}&pageSize=${pageSize.value}&search=${searchQuery.value}`)
     const data = await response.json()
     roles.value = data.items
     total.value = data.total
@@ -313,7 +389,7 @@ async function fetchRoles() {
 // 获取权限列表
 async function fetchPermissions() {
   try {
-    const response = await fetch('/api/permissions')
+    const response = await fetch('/api/admin/permissions')
     const data = await response.json()
     permissions.value = data
   } catch (error) {
@@ -373,7 +449,7 @@ async function savePermissions() {
   
   try {
     savingPermissions.value = true
-    const response = await fetch(`/api/roles/${editingRole.value.id}/permissions`, {
+    const response = await fetch(`/api/admin/roles/${editingRole.value.id}/permissions`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -383,12 +459,17 @@ async function savePermissions() {
       })
     })
     
-    if (!response.ok) throw new Error('保存失败')
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || '保存失败')
+    }
     
     showPermissionDialog.value = false
-    fetchRoles()
+    toast.success('权限设置已更新')
+    await fetchRoles()
   } catch (error) {
     console.error('保存权限失败:', error)
+    toast.error(error instanceof Error ? error.message : '保存权限失败')
   } finally {
     savingPermissions.value = false
   }
@@ -396,28 +477,36 @@ async function savePermissions() {
 
 // 删除角色
 async function deleteRole(role: Role) {
-  const confirmed = await useConfirm({
+  const confirmed = await confirm({
     title: '确认删除',
     content: `确定要删除角色 "${role.name}" 吗？此操作不可恢复。`,
     type: 'error',
     confirmButton: {
       text: '删除',
       variant: 'destructive'
+    },
+    cancelButton: {
+      text: '取消'
     }
   })
   
   if (!confirmed) return
   
   try {
-    const response = await fetch(`/api/roles/${role.id}`, {
+    const response = await fetch(`/api/admin/roles/${role.id}`, {
       method: 'DELETE'
     })
     
-    if (!response.ok) throw new Error('删除失败')
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || '删除失败')
+    }
     
-    fetchRoles()
+    toast.success('角色删除成功')
+    await fetchRoles()
   } catch (error) {
     console.error('删除角色失败:', error)
+    toast.error(error instanceof Error ? error.message : '删除角色失败')
   }
 }
 
@@ -445,8 +534,8 @@ async function saveRole(values: RoleFormValues) {
   try {
     saving.value = true
     const url = editingRole.value
-      ? `/api/roles/${editingRole.value.id}`
-      : '/api/roles'
+      ? `/api/admin/roles/${editingRole.value.id}`
+      : '/api/admin/roles'
     const method = editingRole.value ? 'PUT' : 'POST'
     
     const response = await fetch(url, {
@@ -457,12 +546,17 @@ async function saveRole(values: RoleFormValues) {
       body: JSON.stringify(values)
     })
     
-    if (!response.ok) throw new Error('保存失败')
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || '保存失败')
+    }
     
     showRoleDialog.value = false
-    fetchRoles()
+    toast.success(editingRole.value ? '角色更新成功' : '角色创建成功')
+    await fetchRoles()
   } catch (error) {
     console.error('保存角色失败:', error)
+    toast.error(error instanceof Error ? error.message : '保存角色失败')
   } finally {
     saving.value = false
   }

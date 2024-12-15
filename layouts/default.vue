@@ -1,7 +1,7 @@
 <template>
   <SidebarProvider>
     <!-- Sidebar -->
-    <sidebar></sidebar>
+    <LayoutSidebar />
     <SidebarInset>
       <header
         class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
@@ -12,7 +12,7 @@
         </div>
       </header>
       <!-- Page Content -->
-      <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <div class="flex flex-1 flex-col gap-4 p-0 pt-0">
         <div class="container py-6">
           <slot />
         </div>
@@ -22,8 +22,9 @@
 </template>
 
 <script setup lang="ts">
-import Sidebar from '@/components/layout/sidebar.vue'
+// import Sidebar from '@/components/layout/sidebar.vue'
 import Breadcrumb from '@/components/layout/breadcrumb.vue'
+
 import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
