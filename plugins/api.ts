@@ -1,5 +1,5 @@
 export default defineNuxtPlugin((nuxtApp) => {
-  const { token } = useAuth()
+  // const { token } = useAuth()
 
   // 全局拦截器配置
   nuxtApp.hooks.hook('app:created', () => {
@@ -12,8 +12,9 @@ export default defineNuxtPlugin((nuxtApp) => {
   }
 
   globalThis.$fetch = $fetch.create({
-    ...defaultOptions,
+    ...defaultOptions,    
     onRequest({ options }) {
+      const token = null
       if (token) {
         const authHeader = { Authorization: `${token.value}` }
         // 合并认证头
@@ -29,7 +30,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       // 处理认证错误
       if (response.status === 401) {
         // token过期或无效，清除认证状态
-        authStore.resetState()
+        // authStore.resetState()
         // 重定向到登录页
         navigateTo('/login')
       }

@@ -18,37 +18,14 @@ export default defineNuxtConfig({
     '@nuxt/icon',
     '@vueuse/nuxt',
     'nuxt-lodash',
-    // '@formkit/auto-animate/nuxt',
+    '@formkit/auto-animate/nuxt',
     '@vee-validate/nuxt',
     'dayjs-nuxt',
-    '@sidebase/nuxt-auth',
   ],
   // Shadcn UI 配置
   shadcn: {
     prefix: '',
     componentDir: './components/shadcn',
-  },
-  auth: {
-    globalAppMiddleware: {
-      isEnabled: true,
-    },
-    provider: {
-      type: 'local',
-      endpoints: {
-        signIn: { path: '/login', method: 'post' },
-        getSession: { path: '/user', method: 'get' },
-      },
-      refresh: {
-        isEnabled: true,
-        token: {
-          signInResponseRefreshTokenPointer: '/token/refreshToken',
-          refreshRequestTokenPointer: '/refreshToken',
-        },
-      },
-      token: {
-        signInResponseTokenPointer: '/token/accessToken',
-      },
-    },
   },
   // Google Fonts 配置
   googleFonts: {

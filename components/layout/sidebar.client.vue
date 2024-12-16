@@ -81,11 +81,11 @@
                 <Avatar class="h-8 w-8 rounded-lg">
                   <!-- <AvatarImage :src="data.user.avatar" :alt="data.user.name" /> -->
                   <AvatarFallback class="rounded-lg">
-                    {{ authStore.user?.username.charAt(0).toUpperCase() }}
+                    {{ authStore.user?.name.charAt(0).toUpperCase() }}
                   </AvatarFallback>
                 </Avatar>
                 <div class="grid flex-1 text-left text-sm leading-tight">
-                  <span class="font-medium">{{ authStore.user?.username }}</span>
+                  <span class="font-medium">{{ authStore.user?.name }}</span>
                   <span class="text-xs text-muted-foreground">{{ authStore.user?.email }}</span>
                 </div>
                 <Icon name="lucide:chevrons-up-down" class="ml-auto size-4" />
@@ -108,7 +108,7 @@
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem @click="signOut({ callbackUrl: '/login' })" class="text-red-500 focus:text-red-500">
+              <DropdownMenuItem @click="authLogout()" class="text-red-500 focus:text-red-500">
                 <Icon name="lucide:log-out" class="mr-2 h-4 w-4" />
                 <span>退出登录</span>
               </DropdownMenuItem>
@@ -126,10 +126,8 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu } fr
 import { BookOpen, ChevronsUpDown, CreditCard, FileText, Frame, History, LogOut, Map, Settings, User, Users, BarChart2, Tags } from 'lucide-vue-next';
 import { useAppStore } from '@/stores/app'
 
-const { signOut } = useAuth()
 // 主题设置
 const { toggleTheme } = useAppStore()
-
 const authStore = useAuthStore()
 const route = useRoute()
 
@@ -164,6 +162,11 @@ const navigationItems: NavigationItem[] = [
   {
     name: '来源管理',
     path: '/admin/sources',
+    icon: 'lucide:soup'
+  },
+  {
+    name: '来源管理(new)',
+    path: '/admin/sources/new',
     icon: 'lucide:soup'
   },
   {

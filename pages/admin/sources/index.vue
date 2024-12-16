@@ -21,6 +21,10 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/shadcn/select'
 import { Plus, Search, Pencil, Trash } from 'lucide-vue-next'
 
+definePageMeta({
+  auth: true,
+})
+
 interface Source {
   id: number
   name: string
@@ -39,7 +43,7 @@ const { data: sources, refresh } = await useFetch<Source[]>('/api/sources')
 
 // 搜索
 const searchQuery = ref('')
-const filteredSources = computed(() => (sources.value || []).filter(source => 
+const filteredSources = computed(() => (sources.value || []).filter(source =>
   source.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
   source.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
 ))
@@ -182,31 +186,21 @@ const getSourceTypeLabel = (type: string) => {
     </div>
 
     <div class="flex items-center space-x-2 mb-4">
-      <Input
-        v-model="searchQuery"
-        placeholder="搜索来源..."
-        class="max-w-sm"
-      >
-        <template #prefix>
-          <Search class="h-4 w-4 text-gray-400" />
-        </template>
+      <Input v-model="searchQuery" placeholder="搜索来源..." class="max-w-sm">
+      <template #prefix>
+        <Search class="h-4 w-4 text-gray-400" />
+      </template>
       </Input>
     </div>
 
     <div class="rounded-md border">
-      <DataTable
-        :columns="[
-          { key: 'name', title: '名称' },
-          { key: 'type', title: '类型' },
-          { key: 'description', title: '描述' },
-          { key: 'createdAt', title: '创建时间' }
-        ]"
-        :data="paginatedSources"
-        :total="total"
-        :current-page="currentPage"
-        :page-size="pageSize"
-        @page-change="handlePageChange"
-      >
+      <DataTable :columns="[
+        { key: 'name', title: '名称' },
+        { key: 'type', title: '类型' },
+        { key: 'description', title: '描述' },
+        { key: 'createdAt', title: '创建时间' }
+      ]" :data="paginatedSources" :total="total" :current-page="currentPage" :page-size="pageSize"
+        @page-change="handlePageChange">
         <template #type="{ value }">
           {{ getSourceTypeLabel(value) }}
         </template>

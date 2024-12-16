@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import type { User } from '~/types'
-
 export interface LoginForm {
   email: string
   password: string
@@ -39,16 +38,16 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isAuthenticated: (state): boolean => !!state.status && !!state.user,
-    isAdmin: (state): boolean => {      
+    isAuthenticated: (state): boolean => state.status == 'authenticated',
+    isAdmin: (state): boolean => {
       return true
     },
     hasPermission:
       (state) =>
-      (permission: string): boolean => {
-        if (!state.user?.roles) return false
-        return state.user.roles.some((role) => role.permissions.some((p) => p === permission))
-      },
+        (permission: string): boolean => {
+          if (!state.user?.roles) return false
+          return state.user.roles.some((role) => role.permissions.some((p) => p === permission))
+        },
     isEditor: (state): boolean => ['editor', 'admin'].includes(state.user?.role || ''),
   },
 
@@ -80,40 +79,12 @@ export const useAuthStore = defineStore('auth', {
 
     // 检查认证状态
     async checkAuth() {
-      const { status, data, token } = useAuth()
-      this.status = status.value
+      const { data: session } = await useFetch('/api/auth/session', { headers: useRequestHeaders(['cookie']) })
+
+      this.status = !!session.value?.email ? 'authenticated' : 'unauthenticated'
       // 只在客户端检查 token
-      if (import.meta.client) {
-        if (status.value != 'authenticated') {
-          // 开发环境下自动登录
-          // if (process.dev) {
-          //   try {
-          //     await this.login(DEV_ADMIN)
-          //     return true
-          //   } catch (error) {
-          //     console.error('Auto login failed:', error)
-          //   }
-          // }
-          return false
-        }
-
-        this.token = token.value
-      }
-
-      if (status.value != 'authenticated') {
-        return false
-      }
-
-      this.loading = true
-      try {
-        this.user = data.value as User
-        return true
-      } catch (error) {
-        console.error('Check auth error:', error)
-        this.resetState()
-        return false
-      } finally {
-        this.loading = false
+      if (this.status == 'authenticated') {
+        this.user = session.value as unknown as User
       }
     },
 

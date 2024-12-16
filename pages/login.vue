@@ -49,27 +49,13 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'nuxt/app'
-import { useAuthStore } from '~/stores/auth'
 import { Button } from '@/components/shadcn/button'
 import { Input } from '@/components/shadcn/input'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/shadcn/card'
+
 import { toast } from '~/components/shadcn/toast'
 definePageMeta({
   layout: false,
-  auth: {
-    unauthenticatedOnly: true,
-    navigateAuthenticatedTo: '/'
-  }
 });
-
-const { data, status, signIn } = useAuth()
 
 interface LoginForm {
   email: string
@@ -78,7 +64,6 @@ interface LoginForm {
 }
 
 const router = useRouter()
-const authStore = useAuthStore()
 const loading = ref(false)
 
 const form = reactive<LoginForm>({
@@ -90,7 +75,7 @@ const form = reactive<LoginForm>({
 const handleLogin = async () => {
   try {
     loading.value = true
-    await signIn(form)
+    await authLogin(form.email, form.password)
     router.push('/')
   } catch (error: any) {
     toast({ title: '登录失败', description: error })
@@ -98,11 +83,4 @@ const handleLogin = async () => {
     loading.value = false
   }
 }
-
-// 如果已经登录，直接跳转到首页
-onMounted(() => {
-  if (authStore.isAuthenticated) {
-    router.push('/')
-  }
-})
 </script>
