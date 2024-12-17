@@ -32,7 +32,8 @@ import DataTableToolbar from './DataTableToolbar.vue'
 interface DataTableProps<T> {
   columns: ColumnDef<T, any>[]
   data: T[]
-  toolbar?: any
+  toolbar?: any,
+  filter_column?: string | 'title'
 }
 const props = defineProps<DataTableProps<any>>()
 
@@ -62,12 +63,13 @@ const table = useVueTable({
   getFacetedRowModel: getFacetedRowModel(),
   getFacetedUniqueValues: getFacetedUniqueValues(),
 })
+
 </script>
 
 <template>
   <div class="space-y-4">
     <Component :is="toolbar" :table="table" />
-    <DataTableToolbar v-if="!toolbar" :table="table" />
+    <DataTableToolbar v-if="!toolbar" :table="table" :filter_column="filter_column" />
     <div class="rounded-md border">
       <Table>
         <TableHeader>
@@ -83,7 +85,8 @@ const table = useVueTable({
             <TableRow v-for="row in table.getRowModel().rows" :key="row.id"
               :data-state="row.getIsSelected() && 'selected'">
               <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id">
-                <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()"
+                  @action="(...args) => $emit('action', ...args)" />
               </TableCell>
             </TableRow>
           </template>
