@@ -85,16 +85,40 @@ export interface QuestionFormData {
 }
 
 // Pagination types
-export interface PaginationMeta {
-  page: number
-  limit: number
-  total: number
-  totalPages: number
+/**
+ * 标准分页请求参数
+ */
+export type PaginationParams = {
+  page?: number
+  pageSize?: number  
+  sort?: string
+  order?: 'asc' | 'desc'
 }
 
+/**
+ * 标准分页元数据
+ */
+export type PaginationMeta = {
+  /** 当前页码 */
+  currentPage: number
+  /** 每页条数 */
+  pageSize: number
+  /** 总条数 */
+  total: number
+  /** 总页数 */
+  totalPages: number
+  /** 是否有下一页 */
+  hasNextPage: boolean
+  /** 是否有上一页 */
+  hasPrevPage: boolean
+}
+
+/**
+ * 标准分页响应结构
+ */
 export interface PaginatedResponse<T> {
   items: T[]
-  pagination: PaginationMeta
+  meta: PaginationMeta
 }
 
 // Statistics types
@@ -120,14 +144,6 @@ export type ApiResponse<T> = {
   data: T
   message: string
   status?: number
-}
-
-// 通用的分页请求参数
-export type PaginationParams = {
-  page: number
-  limit: number
-  sort?: string
-  order?: 'asc' | 'desc'
 }
 
 // 通用的查询参数

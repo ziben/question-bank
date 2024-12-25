@@ -1,16 +1,10 @@
 import { PrismaClient } from '@prisma/client'
 import { defineEventHandler, getQuery, readBody, createError } from 'h3'
 import { z } from 'zod'
-import { getUserFromEvent } from '~/server/utils/auth'
+import { RoleCreateOrConnectWithoutUsersInputSchema, RoleCreateWithoutUsersInputSchema, RoleUncheckedCreateWithoutUsersInputSchema } from '~/prisma/generated/zod'
+import { getPaginationParams, paginatedSuccess } from '~/server/utils/response'
 
 const prisma = new PrismaClient()
-
-// 角色创建验证模式
-const createRoleSchema = z.object({
-  name: z.string().min(1).max(50),
-  description: z.string().max(200).optional(),
-  permissionIds: z.array(z.number()).optional()
-})
 
 // 列表查询参数验证模式
 const listQuerySchema = z.object({
@@ -23,6 +17,8 @@ const listQuerySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const method = event.method
+  const session = await useAuthSession(event)
+  const user = session.data
 
   switch (method) {
     case 'GET':
@@ -30,8 +26,8 @@ export default defineEventHandler(async (event) => {
       try {
         const query = getQuery(event)
         const validatedQuery = listQuerySchema.parse(query)
-        const { page, pageSize, search, sortBy, sortOrder } = validatedQuery
-
+        const { search, sortBy, sortOrder } = validatedQuery
+        const { skip, take, page, pageSize } = getPaginationParams(event)
         // 构建查询条件
         const where = search ? {
           OR: [
@@ -41,33 +37,16 @@ export default defineEventHandler(async (event) => {
         } : {}
 
         // 执行查询
-        const [total, roles] = await Promise.all([
+        const [total, items] = await Promise.all([
           prisma.role.count({ where }),
           prisma.role.findMany({
             where,
-            skip: (page - 1) * pageSize,
-            take: pageSize,
-            include: {
-              permissions: {
-                include: {
-                  permission: true
-                }
-              }
-            },
+            skip,
+            take,
             orderBy: { [sortBy]: sortOrder }
           })
         ])
-
-        return {
-          items: roles.map(role => ({
-            ...role,
-            permissions: role.permissions.map(rp => rp.permission)
-          })),
-          total,
-          page,
-          pageSize,
-          totalPages: Math.ceil(total / pageSize)
-        }
+        return paginatedSuccess(items, total, page, pageSize)        
       } catch (error) {
         console.error('获取角色列表失败:', error)
         throw createError({
@@ -82,10 +61,10 @@ export default defineEventHandler(async (event) => {
       // 创建新角色
       try {
         const body = await readBody(event)
-        const user = await getUserFromEvent(event)
-        const validatedData = createRoleSchema.parse(body)
-        const { permissionIds, ...roleData } = validatedData
+        const validatedData = RoleCreateWithoutUsersInputSchema.parse(body)
+        const { permissions, ...roleData } = validatedData
 
+        const permissionCodes = permissions
         // 检查角色名是否已存在
         const existingRole = await prisma.role.findUnique({
           where: { name: roleData.name }
@@ -99,16 +78,16 @@ export default defineEventHandler(async (event) => {
         }
 
         // 如果提供了权限ID，验证它们是否存在
-        if (permissionIds && permissionIds.length > 0) {
+        if (permissionCodes && permissionCodes.length > 0) {
           const permissions = await prisma.permission.findMany({
             where: {
-              id: {
-                in: permissionIds
+              code: {
+                in: permissionCodes
               }
             }
           })
 
-          if (permissions.length !== permissionIds.length) {
+          if (permissions.length !== permissionCodes.length) {
             throw createError({
               statusCode: 400,
               message: '部分权限不存在'
@@ -126,20 +105,7 @@ export default defineEventHandler(async (event) => {
             updatedBy: {
               connect: { id: user?.id },
             },
-            permissions: permissionIds ? {
-              create: permissionIds.map(permissionId => ({
-                permission: {
-                  connect: { id: permissionId }
-                }
-              }))
-            } : undefined
-          },
-          include: {
-            permissions: {
-              include: {
-                permission: true
-              }
-            }
+            permissions: permissionCodes
           }
         })
 

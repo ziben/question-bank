@@ -17,7 +17,7 @@ const listQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   search: z.string().optional(),
   group: z.string().optional(),
-  sortBy: z.enum(['name', 'group', 'createdAt']).default('name'),
+  sortBy: z.enum(['code', 'groupCode', 'actionCode', 'createdAt']).default('code'),
   sortOrder: z.enum(['asc', 'desc']).default('asc')
 })
 
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
           AND: [
             search ? {
               OR: [
-                { name: { contains: search } },
+                { code: { contains: search } },
                 { description: { contains: search } }
               ]
             } : {},

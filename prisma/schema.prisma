@@ -1,5 +1,6 @@
 generator zod {
   provider                         = "zod-prisma-types"
+  useMultipleFiles                 = true
   createOptionalDefaultValuesTypes = true
   createRelationValuesTypes        = true
   output                           = "./generated/zod"
@@ -16,286 +17,296 @@ datasource db {
 
 // 用户模型
 model User {
-  id       Int        @id @default(autoincrement())
-  username String     @unique // 用户名，唯一
-  email    String     @unique // 邮箱，唯一
-  password String // 密码（应该是加密后的哈希值）
-  name     String? // 用户昵称，可选
-  roles    UserRole[] // 用户拥有的角色列表（多对多关联）
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @map("username")
+  email     String   @unique @map("email")
+  password  String   @map("password")
+  name      String?  @map("name")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  creatorId Int?     @map("creator_id")
+  updaterId Int?     @map("updater_id")
 
-  // 创建和更新信息
-  createdAt DateTime @default(now()) // 创建时间
-  updatedAt DateTime @updatedAt // 更新时间
+  // 关联
+  roles                UserRole[]    @relation("user_roles")
+  createdRoles         Role[]        @relation("role_creator")
+  updatedRoles         Role[]        @relation("role_updater")
+  createdPermissions   Permission[]  @relation("permission_creator")
+  updatedPermissions   Permission[]  @relation("permission_updater")
+  createdCategories    Category[]    @relation("category_creator")
+  updatedCategories    Category[]    @relation("category_updater")
+  createdSubjects      Subject[]     @relation("subject_creator")
+  updatedSubjects      Subject[]     @relation("subject_updater")
+  createdGrades        Grade[]       @relation("grade_creator")
+  updatedGrades        Grade[]       @relation("grade_updater")
+  createdSources       Source[]      @relation("source_creator")
+  updatedSources       Source[]      @relation("source_updater")
+  createdQuestions     Question[]    @relation("question_creator")
+  updatedQuestions     Question[]    @relation("question_updater")
+  createdTags          Tag[]         @relation("tag_creator")
+  updatedTags          Tag[]         @relation("tag_updater")
+  systemLogs           SystemLog[]   @relation("user_logs")
+  createdTagCategories TagCategory[] @relation("tag_category_creator")
+  updatedTagCategories TagCategory[] @relation("tag_category_updater")
+  createdQuestionTags  QuestionTag[] @relation("question_tag_creator")
+  updatedQuestionTags  QuestionTag[] @relation("question_tag_updater")
 
-  // 反向关联
-  createdRoles         Role[]        @relation("RoleCreator") // 创建的角色
-  updatedRoles         Role[]        @relation("RoleUpdater") // 更新的角色
-  createdPermissions   Permission[]  @relation("PermissionCreator") // 创建的权限
-  updatedPermissions   Permission[]  @relation("PermissionUpdater") // 更新的权限
-  createdCategories    Category[]    @relation("CategoryCreator") // 创建的分类
-  updatedCategories    Category[]    @relation("CategoryUpdater") // 更新的分类
-  createdSubjects      Subject[]     @relation("SubjectCreator") // 创建的学科
-  updatedSubjects      Subject[]     @relation("SubjectUpdater") // 更新的学科
-  createdGrades        Grade[]       @relation("GradeCreator") // 创建的年级
-  updatedGrades        Grade[]       @relation("GradeUpdater") // 更新的年级
-  createdSources       Source[]      @relation("SourceCreator") // 创建的来源
-  updatedSources       Source[]      @relation("SourceUpdater") // 更新的来源
-  createdQuestions     Question[]    @relation("QuestionCreator") // 创建的题目
-  updatedQuestions     Question[]    @relation("QuestionUpdater") // 更新的题目
-  createdTagCategories TagCategory[] @relation("TagCategoryCreator")
-  updatedTagCategories TagCategory[] @relation("TagCategoryUpdater")
-  createdTags          Tag[]         @relation("TagCreator")
-  updatedTags          Tag[]         @relation("TagUpdater")
-  createdQuestionTags  QuestionTag[] @relation("QuestionTagCreator")
-  updatedQuestionTags  QuestionTag[] @relation("QuestionTagUpdater")
-  systemLogs           SystemLog[] // 用户的操作日志
+  @@map("users")
 }
 
 // 角色模型
 model Role {
-  id          Int              @id @default(autoincrement())
-  name        String           @unique // 角色名称，如："管理员"、"教师"、"学生"
-  description String? // 角色描述
-  permissions RolePermission[] // 角色拥有的权限列表（多对多关联）
-  users       UserRole[] // 拥有该角色的用户列表（多对多关联）
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @map("name")
+  code        String   @unique @map("code")
+  description String?  @map("description")
+  permissions String   @default("[]") @map("permissions")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  creatorId   Int?     @map("creator_id")
+  updaterId   Int?     @map("updater_id")
 
-  // 创建和更新信息
-  createdAt DateTime @default(now()) // 创建时间
-  updatedAt DateTime @updatedAt // 更新时间
-  createdBy User     @relation("RoleCreator", fields: [creatorId], references: [id]) // 创建者
-  creatorId Int
-  updatedBy User     @relation("RoleUpdater", fields: [updaterId], references: [id]) // 更新者
-  updaterId Int
+  // 关联
+  users     UserRole[] @relation("role_users")
+  createdBy User?      @relation("role_creator", fields: [creatorId], references: [id])
+  updatedBy User?      @relation("role_updater", fields: [updaterId], references: [id])
+
+  @@map("roles")
 }
 
 // 权限模型
 model Permission {
-  id          Int              @id @default(autoincrement())
-  name        String           @unique // 权限标识符，如："user.create"、"question.edit"
-  description String? // 权限描述，如："创建用户"、"编辑题目"
-  roles       RolePermission[] // 包含此权限的角色列表（多对多关联）
+  id          Int      @id @default(autoincrement())
+  groupName   String   @map("group_name")
+  groupCode   String   @map("group_code")
+  actionName  String   @map("action_name")
+  actionCode  String   @map("action_code")
+  code        String   @unique @map("code")
+  description String?  @map("description")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  creatorId   Int      @map("creator_id")
+  updaterId   Int      @map("updater_id")
 
-  // 创建和更新信息
-  createdAt DateTime @default(now()) // 创建时间
-  updatedAt DateTime @updatedAt // 更新时间
-  createdBy User     @relation("PermissionCreator", fields: [creatorId], references: [id]) // 创建者
-  creatorId Int
-  updatedBy User     @relation("PermissionUpdater", fields: [updaterId], references: [id]) // 更新者
-  updaterId Int
+  // 关联
+  createdBy User @relation("permission_creator", fields: [creatorId], references: [id])
+  updatedBy User @relation("permission_updater", fields: [updaterId], references: [id])
+
+  @@unique([groupCode, actionCode])
+  @@index([groupCode])
+  @@map("permissions")
 }
 
 // 用户-角色关联表
 model UserRole {
-  id     Int  @id @default(autoincrement())
-  user   User @relation(fields: [userId], references: [id]) // 关联到用户
-  userId Int // 用户ID
-  role   Role @relation(fields: [roleId], references: [id]) // 关联到角色
-  roleId Int // 角色ID
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  roleId    Int      @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  // 创建和更新信息
-  createdAt DateTime @default(now()) // 创建时间
-  updatedAt DateTime @updatedAt // 更新时间
+  // 关联
+  user User @relation("user_roles", fields: [userId], references: [id])
+  role Role @relation("role_users", fields: [roleId], references: [id])
 
-  @@unique([userId, roleId]) // 确保用户和角色的组合唯一
-}
-
-// 角色-权限关联表
-model RolePermission {
-  id           Int        @id @default(autoincrement())
-  role         Role       @relation(fields: [roleId], references: [id]) // 关联到角色
-  roleId       Int // 角色ID
-  permission   Permission @relation(fields: [permissionId], references: [id]) // 关联到权限
-  permissionId Int // 权限ID
-
-  // 创建和更新信息
-  createdAt DateTime @default(now()) // 创建时间
-  updatedAt DateTime @updatedAt // 更新时间
-
-  @@unique([roleId, permissionId]) // 确保角色和权限的组合唯一
+  @@unique([userId, roleId])
+  @@map("user_roles")
 }
 
 // 题目分类模型
 model Category {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique // 分类名称，如："数学"、"物理"
-  description String? // 分类描述
-  questions   Question[] // 该分类下的题目列表
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @map("name")
+  description String?  @map("description")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  creatorId   Int      @map("creator_id")
+  updaterId   Int      @map("updater_id")
 
-  // 创建和更新信息
-  createdAt DateTime @default(now()) // 创建时间
-  updatedAt DateTime @updatedAt // 更新时间
-  createdBy User     @relation("CategoryCreator", fields: [creatorId], references: [id]) // 创建者
-  creatorId Int
-  updatedBy User     @relation("CategoryUpdater", fields: [updaterId], references: [id]) // 更新者
-  updaterId Int
+  // 关联
+  questions Question[] @relation("category_questions")
+  createdBy User       @relation("category_creator", fields: [creatorId], references: [id])
+  updatedBy User       @relation("category_updater", fields: [updaterId], references: [id])
+
+  @@map("categories")
 }
 
 // 学科模型
 model Subject {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique // 学科名称，如："数学"、"语文"、"英语"
-  description String? // 学科描述
-  questions   Question[] // 该学科下的题目列表
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @map("name")
+  description String?  @map("description")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  creatorId   Int      @map("creator_id")
+  updaterId   Int      @map("updater_id")
 
-  // 创建和更新信息
-  createdAt DateTime @default(now()) // 创建时间
-  updatedAt DateTime @updatedAt // 更新时间
-  createdBy User     @relation("SubjectCreator", fields: [creatorId], references: [id]) // 创建者
-  creatorId Int
-  updatedBy User     @relation("SubjectUpdater", fields: [updaterId], references: [id]) // 更新者
-  updaterId Int
+  // 关联
+  questions Question[] @relation("subject_questions")
+  createdBy User       @relation("subject_creator", fields: [creatorId], references: [id])
+  updatedBy User       @relation("subject_updater", fields: [updaterId], references: [id])
+
+  @@map("subjects")
 }
 
 // 年级模型
 model Grade {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique // 年级名称，如："一年级"、"初一"、"高一"
-  description String? // 年级描述
-  questions   Question[] // 该年级下的题目列表
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @map("name")
+  description String?  @map("description")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  creatorId   Int      @map("creator_id")
+  updaterId   Int      @map("updater_id")
 
-  // 创建和更新信息
-  createdAt DateTime @default(now()) // 创建时间
-  updatedAt DateTime @updatedAt // 更新时间
-  createdBy User     @relation("GradeCreator", fields: [creatorId], references: [id]) // 创建者
-  creatorId Int
-  updatedBy User     @relation("GradeUpdater", fields: [updaterId], references: [id]) // 更新者
-  updaterId Int
+  // 关联
+  questions Question[] @relation("grade_questions")
+  createdBy User       @relation("grade_creator", fields: [creatorId], references: [id])
+  updatedBy User       @relation("grade_updater", fields: [updaterId], references: [id])
+
+  @@map("grades")
 }
 
 // 题目来源模型
 model Source {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique // 来源名称，如："某中学"、"某教育机构"
-  type        String // 来源类型：SCHOOL（学校）、INSTITUTION（机构）、EXAM（考试）
-  description String? // 来源描述
-  questions   Question[] // 来自该来源的题目列表
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @map("name")
+  type        String   @map("type")
+  description String?  @map("description")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  creatorId   Int      @map("creator_id")
+  updaterId   Int      @map("updater_id")
 
-  // 创建和更新信息
-  createdAt DateTime @default(now()) // 创建时间
-  updatedAt DateTime @updatedAt // 更新时间
-  createdBy User     @relation("SourceCreator", fields: [creatorId], references: [id]) // 创建者
-  creatorId Int
-  updatedBy User     @relation("SourceUpdater", fields: [updaterId], references: [id]) // 更新者
-  updaterId Int
+  // 关联
+  questions Question[] @relation("source_questions")
+  createdBy User       @relation("source_creator", fields: [creatorId], references: [id])
+  updatedBy User       @relation("source_updater", fields: [updaterId], references: [id])
+
+  @@map("sources")
 }
 
 // 标签类别模型
 model TagCategory {
-  id            Int     @id @default(autoincrement())
-  name          String  @unique // 类别名称，如："来源"、"难度"、"题类"等
-  description   String? // 类别描述
-  code          String  @unique // 类别代码，如："source"、"difficulty"、"type"
-  allowMultiple Boolean @default(false) // 是否允许多选
-  sortOrder     Int     @default(0) // 排序顺序
+  id            Int      @id @default(autoincrement())
+  name          String   @unique @map("name")
+  code          String   @unique @map("code")
+  description   String?  @map("description")
+  allowMultiple Boolean  @default(false) @map("allow_multiple")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  isDeleted     Boolean  @default(false) @map("is_deleted")
+  creatorId     Int?     @map("creator_id")
+  updaterId     Int?     @map("updater_id")
 
   // 关联
-  tags Tag[] // 该类别下的所有标签
+  tags      Tag[] @relation("category_tags")
+  createdBy User? @relation("tag_category_creator", fields: [creatorId], references: [id])
+  updatedBy User? @relation("tag_category_updater", fields: [updaterId], references: [id])
 
-  // 创建和更新信息
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   User?    @relation("TagCategoryCreator", fields: [createdById], references: [id])
-  createdById Int?
-  updatedBy   User?    @relation("TagCategoryUpdater", fields: [updatedById], references: [id])
-  updatedById Int?
+  @@map("tag_categories")
 }
 
 // 标签模型
 model Tag {
-  id          Int     @id @default(autoincrement())
-  name        String // 标签名称
-  code        String // 标签代码
-  description String? // 标签描述
-  sortOrder   Int     @default(0) // 排序顺序
+  id          Int      @id @default(autoincrement())
+  name        String   @map("name")
+  code        String?  @map("code")
+  description String?  @map("description")
+  sortOrder   Int      @default(0) @map("sort_order")
+  categoryId  Int      @map("category_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  creatorId   Int?     @map("creator_id")
+  updaterId   Int?     @map("updater_id")
 
   // 关联
-  category   TagCategory   @relation(fields: [categoryId], references: [id]) // 所属类别
-  categoryId Int
-  parent     Tag?          @relation("TagHierarchy", fields: [parentId], references: [id]) // 父标签
-  parentId   Int?
-  children   Tag[]         @relation("TagHierarchy") // 子标签
-  questions  QuestionTag[] // 使用此标签的题目
+  category     TagCategory   @relation("category_tags", fields: [categoryId], references: [id])
+  questionTags QuestionTag[] @relation("tag_questions")
+  createdBy    User?         @relation("tag_creator", fields: [creatorId], references: [id])
+  updatedBy    User?         @relation("tag_updater", fields: [updaterId], references: [id])
 
-  // 创建和更新信息
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   User?    @relation("TagCreator", fields: [createdById], references: [id])
-  createdById Int?
-  updatedBy   User?    @relation("TagUpdater", fields: [updatedById], references: [id])
-  updatedById Int?
-
-  @@unique([categoryId, code]) // 确保同一类别下的标签代码唯一
+  @@unique([categoryId, name])
+  @@map("tags")
 }
 
-// 题目-标签关联模型
+// 题目模型
+model Question {
+  id         Int      @id @default(autoincrement())
+  title      String   @map("title")
+  content    String   @map("content")
+  answer     String?  @map("answer")
+  analysis   String?  @map("analysis")
+  difficulty Int      @default(1) @map("difficulty")
+  status     String   @default("DRAFT") @map("status")
+  categoryId Int      @map("category_id")
+  subjectId  Int      @map("subject_id")
+  gradeId    Int      @map("grade_id")
+  sourceId   Int?     @map("source_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  isDeleted  Boolean  @default(false) @map("is_deleted")
+  creatorId  Int      @map("creator_id")
+  updaterId  Int      @map("updater_id")
+
+  // 关联
+  category  Category      @relation("category_questions", fields: [categoryId], references: [id])
+  subject   Subject       @relation("subject_questions", fields: [subjectId], references: [id])
+  grade     Grade         @relation("grade_questions", fields: [gradeId], references: [id])
+  source    Source?       @relation("source_questions", fields: [sourceId], references: [id])
+  tags      QuestionTag[] @relation("question_tags")
+  createdBy User          @relation("question_creator", fields: [creatorId], references: [id])
+  updatedBy User          @relation("question_updater", fields: [updaterId], references: [id])
+
+  @@map("questions")
+}
+
+// 题目-标签关联表
 model QuestionTag {
   id         Int      @id @default(autoincrement())
-  question   Question @relation(fields: [questionId], references: [id])
-  questionId Int
-  tag        Tag      @relation(fields: [tagId], references: [id])
-  tagId      Int
+  questionId Int      @map("question_id")
+  tagId      Int      @map("tag_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  isDeleted  Boolean  @default(false) @map("is_deleted")
+  creatorId  Int?     @map("creator_id")
+  updaterId  Int?     @map("updater_id")
 
-  // 创建和更新信息
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   User?    @relation("QuestionTagCreator", fields: [createdById], references: [id])
-  createdById Int?
-  updatedBy   User?    @relation("QuestionTagUpdater", fields: [updatedById], references: [id])
-  updatedById Int?
+  // 关联
+  question  Question @relation("question_tags", fields: [questionId], references: [id])
+  tag       Tag      @relation("tag_questions", fields: [tagId], references: [id])
+  createdBy User?    @relation("question_tag_creator", fields: [creatorId], references: [id])
+  updatedBy User?    @relation("question_tag_updater", fields: [updaterId], references: [id])
 
-  @@unique([questionId, tagId]) // 确保同一题目不会重复添加同一个标签
+  @@unique([questionId, tagId])
+  @@map("question_tags")
 }
 
 // 系统日志模型
 model SystemLog {
   id        Int      @id @default(autoincrement())
-  module    String // 模块：AUTH、USER、ROLE、PERMISSION、QUESTION、EXAM、TEST
-  action    String // 操作类型：CREATE、UPDATE、DELETE等
-  targetId  String? // 操作目标ID
-  details   String // 操作详情（JSON格式）
-  level     Int      @default(1) // 日志等级
-  userId    Int // 操作用户ID
-  user      User     @relation(fields: [userId], references: [id])
-  ip        String? // 操作者IP
-  userAgent String? // 操作者浏览器信息
-  timestamp DateTime @default(now()) // 操作时间
+  userId    Int      @map("user_id")
+  module    String   @map("module")
+  action    String   @map("action")
+  target    String   @map("target")
+  targetId  String   @map("target_id")
+  detail    String?  @map("detail")
+  ip        String?  @map("ip")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@index([module, action])
-  @@index([timestamp])
-  @@index([userId])
-  @@index([level])
-  @@index([targetId])
-}
+  // 关联
+  user User @relation("user_logs", fields: [userId], references: [id])
 
-// 题目模型
-model Question {
-  id          Int     @id @default(autoincrement())
-  title       String // 题目标题
-  content     String // 题目内容
-  type        String // 题目类型：multiple_choice（选择题）、true_false（判断题）、essay（问答题）
-  difficulty  Int     @default(3) // 难度等级：1-5星
-  options     String? // 选项内容（JSON格式，选择题使用）
-  answer      String // 答案（选择题为选项索引，其他题型为答案文本）
-  explanation String? // 答案解释
-
-  // 关联字段
-  category   Category @relation(fields: [categoryId], references: [id]) // 所属分类
-  categoryId Int
-  subject    Subject  @relation(fields: [subjectId], references: [id]) // 所属学科
-  subjectId  Int
-  grade      Grade    @relation(fields: [gradeId], references: [id]) // 所属年级
-  gradeId    Int
-  source     Source   @relation(fields: [sourceId], references: [id]) // 题目来源
-  sourceId   Int
-
-  // 创建和更新信息
-  createdAt   DateTime @default(now()) // 创建时间
-  updatedAt   DateTime @updatedAt // 更新时间
-  createdBy   User?    @relation("QuestionCreator", fields: [createdById], references: [id]) // 创建者
-  createdById Int?     @default(1) // 默认为ID为1的用户
-  updatedBy   User?    @relation("QuestionUpdater", fields: [updatedById], references: [id]) // 更新者
-  updatedById Int?     @default(1) // 默认为ID为1的用户
-
-  // 标签关联
-  tags QuestionTag[] // 题目的标签
+  @@map("system_logs")
 }

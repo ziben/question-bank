@@ -10,17 +10,32 @@
         </p>
       </div>
     </div>
-    <MyNewDataTable :data="roles" :columns="columns" :filter_column="'name'" @action="handleAction" />
+    <MyNewDataTable :data="roles" :columns="columns" :filter_column="'name'" :pagination="{
+      page: currentPage,
+      pageSize: pageSize,
+      total: total,
+      onPageChange,
+      onPageSizeChange
+    }" @action="handleAction" />
     <!-- 角色表单对话框 -->
     <Dialog :open="showRoleDialog" @update:open="showRoleDialog = $event">
       <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{{ editingRole ? '编辑角色' : '新建角色' }}</DialogTitle>
+          <DialogTitle>{{ editingRole ? '编辑角色（ID:' + editingRole.id + '）' : '新建角色' }}</DialogTitle>
           <DialogDescription>
             {{ editingRole ? '修改角色信息' : '创建新的角色并设置基本信息' }}
           </DialogDescription>
         </DialogHeader>
-        <form @submit="form.handleSubmit(saveRole)" class="space-y-4 py-4">
+        <form @submit="onSubmit" class="space-y-4 py-4">
+          <FormField v-slot="{ componentField }" name="code">
+            <FormItem>
+              <FormLabel required>角色代码</FormLabel>
+              <FormControl>
+                <Input v-bind="componentField" placeholder="输入角色代码" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
           <FormField v-slot="{ componentField }" name="name">
             <FormItem>
               <FormLabel required>角色名称</FormLabel>
@@ -69,30 +84,37 @@
           </DialogDescription>
         </DialogHeader>
         <ScrollArea class="h-[60vh] pr-4">
-          <div class="space-y-8 py-4">
-            <div v-for="(group, key) in permissionGroups" :key="key" class="space-y-4">
+          <div class="space-y-6 py-3">
+            <div v-for="(group, key) in permissionGroups" :key="key" class="space-y-2">
               <div class="flex items-center justify-between">
-                <div class="space-y-1">
+                <div>
                   <Label class="text-base font-medium">{{ key }}</Label>
                   <p class="text-sm text-muted-foreground">
                     选择该模块下的权限
                   </p>
                 </div>
-                <Button variant="outline" size="sm" @click="toggleGroupPermissions(key)">
+                <Button variant="outline" size="sm" class="h-8 px-3 text-sm" @click="toggleGroupPermissions(key)">
                   {{ isGroupSelected(key) ? '取消全选' : '全选' }}
                 </Button>
               </div>
-              <Separator />
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Separator class="my-1.5" />
+              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-1.5">
                 <div v-for="permission in group" :key="permission.id"
-                  class="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <Checkbox :id="'permission-' + permission.id" v-model="selectedPermissions"
-                    :value="String(permission.id)" />
-                  <div class="grid gap-1.5 leading-none">
-                    <label :for="'permission-' + permission.id" class="text-sm font-medium leading-none cursor-pointer">
-                      {{ permission.name }}
+                  class="flex items-start space-x-2 p-1.5 rounded hover:bg-muted/50 transition-colors">
+                  <Checkbox :id="'permission-' + permission.id" :checked="selectedPermissions.includes(permission.code)"
+                    @update:checked="(checked) => {
+                      if (checked) {
+                        selectedPermissions = [...selectedPermissions, permission.code]
+                      } else {
+                        selectedPermissions = selectedPermissions.filter(code => code !== permission.code)
+                      }
+                    }" class="h-4 w-4 translate-y-[1px]" />
+                  <div class="space-y-0.5 min-w-0">
+                    <label :for="'permission-' + permission.id"
+                      class="text-sm font-medium leading-none cursor-pointer truncate block">
+                      {{ permission.code }}
                     </label>
-                    <p class="text-sm text-muted-foreground">
+                    <p class="text-xs text-muted-foreground line-clamp-1">
                       {{ permission.description }}
                     </p>
                   </div>
@@ -138,13 +160,17 @@ import { useConfirm } from '@/composables/useConfirm'
 import type { Permission, Role } from '@prisma/client'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, nextTick } from 'vue'
 import * as z from 'zod'
 
 import { columns } from '@/components/my/roles/columns'
-import type { RoleWithRelations } from '~/prisma/generated/zod'
+import { RoleOptionalDefaultsSchema, type RoleWithRelations } from '~/prisma/generated/zod'
 import type { Row } from '@tanstack/vue-table'
+import type { PaginatedResponse } from '~/types'
 
+// 获取角色列表的响应类型
+type RolesResponse = ApiResponse<PaginatedResponse<RoleWithRelations>>
+  
 // 状态管理
 const loading = ref(false)
 const saving = ref(false)
@@ -154,7 +180,7 @@ const showPermissionDialog = ref(false)
 const editingRole = ref<RoleWithRelations | null>(null)
 const roles = ref<RoleWithRelations[]>([])
 const permissions = ref<Permission[]>([])
-const selectedPermissions = ref<number[]>([])
+const selectedPermissions = ref<string[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -166,6 +192,11 @@ const { toast } = useToast()
 // Role form schema
 const roleFormSchema = toTypedSchema(
   z.object({
+    code: z.string().min(2, {
+      message: '角色标识至少需要2个字符'
+    }).max(50, {
+      message: '角色标识不能超过50个字符'
+    }),
     name: z.string().min(2, {
       message: '角色名称至少需要2个字符'
     }).max(50, {
@@ -178,6 +209,7 @@ const roleFormSchema = toTypedSchema(
 )
 
 type RoleFormValues = {
+  code: string;
   name: string;
   description?: string;
 }
@@ -185,6 +217,7 @@ type RoleFormValues = {
 const form = useForm({
   validationSchema: roleFormSchema,
   initialValues: {
+    code: '',
     name: '',
     description: ''
   }
@@ -203,6 +236,9 @@ const handleAction = (action: string, ...args: any[]) => {
     case 'delete':
       deleteRole(args[0].original)
       break;
+    case 'add':
+      openRoleDialog()
+      break;
     default:
       break;
   }
@@ -216,13 +252,15 @@ function openRoleDialog(role: RoleWithRelations | null = null) {
   if (role) {
     form.resetForm({
       values: {
+        code: role.code,
         name: role.name,
-        description: role.description || '123'
+        description: role.description || ''
       }
     })
   } else {
     form.resetForm({
       values: {
+        code: '',
         name: '',
         description: ''
       }
@@ -231,14 +269,15 @@ function openRoleDialog(role: RoleWithRelations | null = null) {
   showRoleDialog.value = true
 }
 
+
+
 // 获取角色列表
 async function fetchRoles() {
   try {
     loading.value = true
-    const response = await fetch(`/api/admin/roles?page=${currentPage.value}&pageSize=${pageSize.value}&search=${searchQuery.value}`)
-    const data = await response.json()
-    roles.value = data.items
-    total.value = data.total
+    const { data } = await $fetch<RolesResponse>(`/api/admin/roles?page=${currentPage.value}&pageSize=${pageSize.value}&search=${searchQuery.value}`)
+    roles.value = data?.items || []
+    total.value = data?.meta?.total || 0
   } catch (error) {
     console.error('获取角色列表失败:', error)
   } finally {
@@ -249,9 +288,9 @@ async function fetchRoles() {
 // 获取权限列表
 async function fetchPermissions() {
   try {
-    const response = await fetch('/api/admin/permissions')
-    const data = await response.json()
-    permissions.value = data
+    const response = await useFetch('/api/admin/permissions')
+    // const data = await response.json()
+    permissions.value = response.data?.value?.items
   } catch (error) {
     console.error('获取权限列表失败:', error)
   }
@@ -261,7 +300,7 @@ async function fetchPermissions() {
 const permissionGroups = computed(() => {
   const groups: Record<string, Permission[]> = {}
   permissions.value.forEach(permission => {
-    const [module] = permission.name.split('.')
+    const module = permission.groupCode
     if (!groups[module]) {
       groups[module] = []
     }
@@ -271,27 +310,27 @@ const permissionGroups = computed(() => {
 })
 
 // 检查权限组是否全部选中
-function isGroupSelected(groupName: string) {
-  const groupPermissions = permissionGroups.value[groupName]
+function isGroupSelected(groupCode: string) {
+  const groupPermissions = permissionGroups.value[groupCode]
   return groupPermissions.every(permission =>
-    selectedPermissions.value.includes(permission.id)
+    selectedPermissions.value.includes(permission.code)
   )
 }
 
 // 切换权限组的选中状态
-function toggleGroupPermissions(groupName: string) {
-  const groupPermissions = permissionGroups.value[groupName]
-  const allSelected = isGroupSelected(groupName)
+function toggleGroupPermissions(groupCode: string) {
+  const groupPermissions = permissionGroups.value[groupCode]
+  const allSelected = isGroupSelected(groupCode)
 
   if (allSelected) {
-    selectedPermissions.value = selectedPermissions.value.filter(id =>
-      !groupPermissions.some(p => p.id === id)
+    selectedPermissions.value = selectedPermissions.value.filter(code =>
+      !groupPermissions.some(p => p.code === code)
     )
   } else {
     const newPermissions = groupPermissions
-      .map(p => p.id)
-      .filter(id => !selectedPermissions.value.includes(id))
-    selectedPermissions.value.push(...newPermissions)
+      .map(p => p.code)
+      .filter(code => !selectedPermissions.value.includes(code))
+    selectedPermissions.value = [...selectedPermissions.value, ...newPermissions]
   }
 }
 
@@ -299,7 +338,8 @@ function toggleGroupPermissions(groupName: string) {
 async function openPermissionDialog(role: RoleWithRelations) {
   editingRole.value = role
   await fetchPermissions()
-  selectedPermissions.value = role.permissions.map(p => p.id)
+  // const rolePermissions = JSON.parse(role.permissions)
+  selectedPermissions.value = role.permissions
   showPermissionDialog.value = true
 }
 
@@ -309,19 +349,15 @@ async function savePermissions() {
 
   try {
     savingPermissions.value = true
-    const response = await fetch(`/api/admin/roles/${editingRole.value.id}/permissions`, {
+    const { error } = await useFetch(`/api/admin/roles/${editingRole.value.id}/permissions`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        permissionIds: selectedPermissions.value
-      })
+      body: {
+        permissions: selectedPermissions.value
+      }
     })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || '保存失败')
+    if (error.value) {
+      throw new Error(error.value?.data?.message || '保存失败')
     }
 
     showPermissionDialog.value = false
@@ -329,7 +365,11 @@ async function savePermissions() {
     await fetchRoles()
   } catch (error) {
     console.error('保存权限失败:', error)
-    toast({ title: error instanceof Error ? error.message : '保存权限失败' })
+    toast({
+      variant: 'destructive',
+      title: '保存失败',
+      description: error instanceof Error ? error.message : '保存权限失败'
+    })
   } finally {
     savingPermissions.value = false
   }
@@ -376,14 +416,30 @@ function onPageChange(page: number) {
 }
 
 function onPageSizeChange(size: number) {
-  pageSize.value = size
-  currentPage.value = 1
+  nextTick(() => {
+    pageSize.value = size
+    currentPage.value = 1
+  })
 }
 
 // 监听分页和搜索变化
 watch([currentPage, pageSize, searchQuery], () => {
   fetchRoles()
 })
+
+// 监听 selectedPermissions 变化
+watch(selectedPermissions, (newValue) => {
+  console.log('selectedPermissions changed:', newValue)
+}, { deep: true })
+
+// 表单提交处理
+const onSubmit = async (e: Event) => {
+  e.preventDefault()
+  const { valid } = await form.validate()
+  if (valid) {
+    await saveRole(form.values as RoleFormValues)
+  }
+}
 
 // 初始化
 onMounted(() => {
@@ -396,27 +452,29 @@ async function saveRole(values: RoleFormValues) {
     const url = editingRole.value
       ? `/api/admin/roles/${editingRole.value.id}`
       : '/api/admin/roles'
-    const method = editingRole.value ? 'PUT' : 'POST'
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(values)
+    const { data, error } = await $fetch(url, {
+      method: editingRole.value ? 'PUT' : 'POST',
+      body: values
     })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || '保存失败')
+    if (error.value) {
+      throw new Error(error.value?.data?.message || '保存失败')
     }
 
     showRoleDialog.value = false
-    toast({ title: editingRole.value ? '角色更新成功' : '角色创建成功' })
+    toast({
+      title: editingRole.value ? '角色更新成功' : '角色创建成功',
+      description: `角色"${values.name}"${editingRole.value ? '已更新' : '已创建'}`
+    })
     await fetchRoles()
   } catch (error) {
     console.error('保存角色失败:', error)
-    toast({ title: error instanceof Error ? error.message : '保存角色失败' })
+    toast({
+      variant: 'destructive',
+      title: '保存失败',
+      description: error instanceof Error ? error.message : '保存角色失败'
+    })
   } finally {
     saving.value = false
   }

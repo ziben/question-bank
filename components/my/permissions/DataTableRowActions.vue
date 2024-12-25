@@ -14,21 +14,16 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/shadcn/dropdown-menu'
-import { computed } from 'vue'
-
-import { labels } from './data/data'
-import {  taskSchema } from './data/schema'
 
 interface DataTableRowActionsProps {
   row: Row<any>
 }
 const props = defineProps<DataTableRowActionsProps>()
 
-const task = computed(() => taskSchema.parse(props.row.original))
 </script>
 
 <template>
-  <DropdownMenu>
+  <DropdownMenu onclick="console.log('click')">
     <DropdownMenuTrigger as-child>
       <Button variant="ghost" class="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
         <Icon name="radix-icons:dots-horizontal" class="h-4 w-4" />
@@ -36,23 +31,11 @@ const task = computed(() => taskSchema.parse(props.row.original))
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-[160px]">
-      <DropdownMenuItem>Edit</DropdownMenuItem>
-      <DropdownMenuItem>Make a copy</DropdownMenuItem>
-      <DropdownMenuItem>Favorite</DropdownMenuItem>
+      <DropdownMenuItem @click="$emit('action', 'edit', row.original)">编辑</DropdownMenuItem>
+      <DropdownMenuItem @click="$emit('action', 'toggle', row.original.id)">切换</DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger>Labels</DropdownMenuSubTrigger>
-        <DropdownMenuSubContent>
-          <DropdownMenuRadioGroup :value="task.label">
-            <DropdownMenuRadioItem v-for="label in labels" :key="label.value" :value="label.value">
-              {{ label.label }}
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem>
-        Delete
+      <DropdownMenuItem @click="$emit('action', 'delete', row.original.id)">
+        删除
         <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
       </DropdownMenuItem>
     </DropdownMenuContent>

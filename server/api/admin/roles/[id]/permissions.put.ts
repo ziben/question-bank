@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client'
 import { defineEventHandler, readBody } from 'h3'
-
-const prisma = new PrismaClient()
+import prisma from '~/lib/prisma'
 
 export default defineEventHandler(async (event) => {
   const id = Number(event.context.params?.id)
@@ -20,26 +18,9 @@ export default defineEventHandler(async (event) => {
   const role = await prisma.role.update({
     where: { id },
     data: {
-      permissions: {
-        deleteMany: {}, // 删除所有现有权限
-        create: permissions.map((permissionId: number) => ({
-          permission: {
-            connect: { id: permissionId }
-          }
-        }))
-      }
-    },
-    include: {
-      permissions: {
-        include: {
-          permission: true
-        }
-      }
+      permissions: JSON.stringify(permissions)
     }
   })
 
-  return {
-    ...role,
-    permissions: role.permissions.map(rp => rp.permission)
-  }
+  return role
 })

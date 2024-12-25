@@ -1,51 +1,69 @@
 import DataTableColumnHeader from '@/components/my/new-data-table/DataTableColumnHeader.vue'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
 import { Checkbox } from '@/components/shadcn/checkbox'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { h } from 'vue'
-import type { RoleWithRelations } from '~/prisma/generated/zod'
+import type { Permission } from '~/prisma/generated/zod'
 import DataTableRowActions from './DataTableRowActions.vue'
-export const columns: ColumnDef<RoleWithRelations>[] = [
+export const columns: ColumnDef<Permission>[] = [
   {
     id: 'select',
     header: ({ table }) => h(Checkbox, {
       'checked': table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
       'onUpdate:checked': value => table.toggleAllPageRowsSelected(!!value),
-      'ariaLabel': 'Select all',
+      'aria-label': 'Select all',
       'class': 'translate-y-0.5',
     }),
-    cell: ({ row }) => h(Checkbox, { 'checked': row.getIsSelected(), 'onUpdate:checked': value => row.toggleSelected(!!value), 'ariaLabel': 'Select row', 'class': 'translate-y-0.5' }),
+    cell: ({ row }) => h(Checkbox, {
+      'checked': row.getIsSelected(),
+      'onUpdate:checked': value => row.toggleSelected(!!value),
+      'aria-label': 'Select row',
+      'class': 'translate-y-0.5',
+    }),
     enableSorting: false,
     enableHiding: false,
   },
   {
-    accessorKey: 'id',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'ID' }),
-    cell: ({ row }) => h('div', { class: 'w-20' }, row.getValue('id')),
-    enableSorting: false,
-    enableHiding: false,
+    accessorKey: 'groupName',
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: '分组名称' }),
+    cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('groupName')),
   },
   {
-    accessorKey: 'name',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: '名称' }),
-
-    cell: ({ row }) => {
-      return h('div', { class: 'flex space-x-2' }, [
-        h('span', { class: 'max-w-[500px] truncate font-medium' }, row.getValue('name')),
-      ])
-    },
+    accessorKey: 'groupCode',
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: '分组代码' }),
+    cell: ({ row }) => h('div', { class: 'font-mono text-sm' }, row.getValue('groupCode')),
+  },
+  {
+    accessorKey: 'actionName',
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: '操作名称' }),
+    cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('actionName')),
+  },
+  {
+    accessorKey: 'actionCode',
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: '操作代码' }),
+    cell: ({ row }) => h('div', { class: 'font-mono text-sm' }, row.getValue('actionCode')),
+  },
+  {
+    accessorKey: 'code',
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: '权限代码' }),
+    cell: ({ row }) => h('code', { class: 'px-2 py-1 rounded bg-muted font-mono text-sm' }, row.getValue('code')),
   },
   {
     accessorKey: 'description',
     header: ({ column }) => h(DataTableColumnHeader, { column, title: '描述' }),
-    cell: ({ row }) => h('div', { class: 'w-20' }, row.getValue('description')),
+    cell: ({ row }) => h('div', { class: 'text-muted-foreground' }, row.getValue('description') || '-'),
   },
   {
-    accessorKey: 'permisi',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: '权限' }),
-    cell: ({ row }) => h('div', { class: 'w-20' }, row.getValue('permissions')),
+    accessorKey: 'isDeleted',
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: '状态' }),
+    cell: ({ row }) => h(Badge, {
+      variant: row.getValue('isDeleted') ? 'destructive' : 'secondary',
+    }, () => row.getValue('isDeleted') ? '已禁用' : '启用中'),
   },
   {
     id: 'actions',
+    header: '操作',
     cell: ({ row }) => h(DataTableRowActions, { row }),
   },
 ]

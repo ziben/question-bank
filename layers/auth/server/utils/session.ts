@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 const sessionConfig: SessionConfig = useRuntimeConfig().auth || {}
 
 export type AuthSession = {
-  id: string
+  id: number
   name: string
   email: string
 }

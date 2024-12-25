@@ -7,19 +7,7 @@ export async function findUserByEmail(email: string): Promise<User> {
   const user = await prisma.user.findUnique({
     where: { email },
     include: {
-      roles: {
-        include: {
-          role: {
-            include: {
-              permissions: {
-                include: {
-                  permission: true,
-                },
-              },
-            },
-          },
-        },
-      },
+      roles: true,
     },
   })
 

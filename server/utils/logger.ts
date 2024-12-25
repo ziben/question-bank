@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { LOG_ACTIONS, LOG_MODULES, LOG_LEVELS } from '../config/logger'
-import type { LogModule, LogAction, LogLevel } from '~/types/log'
+import { type LogModule, type LogLevel, LOG_ACTIONS, LOG_MODULES, type LogModuleType, type LogAction, type LogActionType, LOG_LEVELS } from '~/types/log'
 
 const prisma = new PrismaClient()
 
@@ -8,6 +7,7 @@ export class Logger {
   static async log({
     module,
     action,
+    target,
     targetId,
     details,
     userId,
@@ -17,6 +17,7 @@ export class Logger {
   }: {
     module: LogModule
     action: LogAction
+    target?: string
     targetId?: string
     details: any
     userId: number
@@ -26,17 +27,18 @@ export class Logger {
   }) {
     try {
       // 获取操作配置
-      const actionConfig = LOG_ACTIONS[action]
-      const moduleConfig = LOG_MODULES[module]
+      const actionConfig = LOG_ACTIONS[action.name as LogActionType]
+      const moduleConfig = LOG_MODULES[module.name as LogModuleType]
 
       // 创建日志记录
       const log = await prisma.systemLog.create({
         data: {
-          module,
-          action,
-          targetId,
+          module: module.name,
+          action: action.name,
+          target: target ?? '',
+          targetId: targetId ?? '',
           details: JSON.stringify(details),
-          level: level ? LOG_LEVELS[level] : actionConfig.level,
+          level: level ? level : actionConfig.level,
           userId,
           ip,
           userAgent
@@ -65,7 +67,7 @@ export class Logger {
     page?: number
     pageSize?: number
     module?: LogModule
-    action?: LogAction
+    action?: keyof typeof LOG_ACTIONS
     userId?: number
     startDate?: Date
     endDate?: Date
@@ -81,8 +83,8 @@ export class Logger {
       if (action) where.action = action
       if (userId) where.userId = userId
       if (ip) where.ip = ip
-      if (level) where.level = LOG_LEVELS[level]
-      
+      if (level) where.level = level
+
       if (startDate || endDate) {
         where.timestamp = {}
         if (startDate) where.timestamp.gte = startDate
@@ -264,7 +266,7 @@ export class Logger {
       const logs = await prisma.systemLog.findMany({
         where: {
           targetId,
-          module
+          module: module.name
         },
         include: {
           user: {

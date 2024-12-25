@@ -1,19 +1,24 @@
-export type Permission = 
-  | 'user.create' 
-  | 'user.read' 
-  | 'user.update' 
-  | 'user.delete'
-  | 'subject.create'
-  | 'subject.read'
-  | 'subject.update'
-  | 'subject.delete'
-  | 'question.create'
-  | 'question.read'
-  | 'question.update'
-  | 'question.delete'
-  | 'grade.manage'
-  | 'source.manage'
-  | 'log.view'
+export type Permission = string
+
+export type PermissionModule = {
+  id: number
+  name: string
+  code: string
+  description: string
+  createdAt: string
+  updatedAt: string
+  actions: PermissionAction[]
+}
+
+export type PermissionAction = {
+  id: number
+  name: string
+  code: string
+  description: string
+  moduleId: number
+  createdAt: string
+  updatedAt: string
+}
 
 export type Role = {
   id: number
@@ -33,8 +38,9 @@ export type UserRole = {
   updatedAt: string
 }
 
-export interface PermissionGroup {
+export type PermissionGroup = {
   name: string
+  code: string
   permissions: {
     value: Permission
     label: string
@@ -45,6 +51,7 @@ export interface PermissionGroup {
 export const permissionGroups: PermissionGroup[] = [
   {
     name: '用户管理',
+    code: 'user',
     permissions: [
       { value: 'user.create', label: '创建用户', description: '允许创建新用户' },
       { value: 'user.read', label: '查看用户', description: '允许查看用户信息' },
@@ -54,6 +61,7 @@ export const permissionGroups: PermissionGroup[] = [
   },
   {
     name: '题目管理',
+    code: 'question',
     permissions: [
       { value: 'question.create', label: '创建题目', description: '允许创建新题目' },
       { value: 'question.read', label: '查看题目', description: '允许查看题目' },
@@ -63,6 +71,7 @@ export const permissionGroups: PermissionGroup[] = [
   },
   {
     name: '科目管理',
+    code: 'subject',
     permissions: [
       { value: 'subject.create', label: '创建科目', description: '允许创建新科目' },
       { value: 'subject.read', label: '查看科目', description: '允许查看科目' },
@@ -72,6 +81,7 @@ export const permissionGroups: PermissionGroup[] = [
   },
   {
     name: '其他权限',
+    code: 'other',
     permissions: [
       { value: 'grade.manage', label: '年级管理', description: '允许管理年级信息' },
       { value: 'source.manage', label: '来源管理', description: '允许管理题目来源' },

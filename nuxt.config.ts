@@ -98,4 +98,9 @@ export default defineNuxtConfig({
       '/api/**': { cors: true },
     },
   },
+
+  // 服务端中间件配置
+  // serverMiddleware: [
+  //   { route: '/api/**', handler: '~/middleware/logger.ts' }
+  // ],
 })

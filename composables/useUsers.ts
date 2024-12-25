@@ -28,7 +28,7 @@ export function useUsers() {
     try {
       loading.value = true
       const response = await fetch(
-        `/api/users?page=${currentPage.value}&pageSize=${pageSize.value}&search=${searchQuery.value}`
+        `/api/admin/users?page=${currentPage.value}&pageSize=${pageSize.value}&search=${searchQuery.value}`
       )
       if (!response.ok) throw new Error('Failed to fetch users')
       const data = await response.json()
@@ -43,7 +43,7 @@ export function useUsers() {
   }
 
   async function createUser(userData: UserFormData): Promise<void> {
-    const response = await fetch('/api/users', {
+    const response = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData)
@@ -56,7 +56,7 @@ export function useUsers() {
   }
 
   async function updateUser(id: number, userData: Partial<UserFormData>): Promise<void> {
-    const response = await fetch(`/api/users/${id}`, {
+    const response = await fetch(`/api/admin/users/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData)
@@ -81,7 +81,7 @@ export function useUsers() {
 
     if (!confirmed) return false
 
-    const response = await fetch(`/api/users/${user.id}`, {
+    const response = await fetch(`/api/admin/users/${user.id}`, {
       method: 'DELETE'
     })
 
@@ -94,7 +94,7 @@ export function useUsers() {
   }
 
   async function updateUserRoles(userId: number, roleIds: number[]): Promise<void> {
-    const response = await fetch(`/api/users/${userId}/roles`, {
+    const response = await fetch(`/api/admin/users/${userId}/roles`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roleIds })

@@ -2,306 +2,254 @@
   <div class="p-6">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-semibold tracking-tight">权限管理</h1>
-      <div class="flex items-center gap-4">
-        <div class="relative w-64">
-          <Input
-            v-model="searchQuery"
-            placeholder="搜索权限..."
-            class="w-full"
-          >
-            <template #prefix>
-              <SearchIcon class="h-4 w-4 text-muted-foreground" />
-            </template>
-          </Input>
-        </div>
-        <Button @click="openPermissionDialog()">
-          <PlusIcon class="h-4 w-4 mr-2" />
-          新建权限
-        </Button>
-      </div>
     </div>
 
-    <Card>
-      <DataTable
-        :columns="columns"
-        :data="permissions"
-        :total="total"
-        :loading="loading"
-        :current-page="currentPage"
-        :page-size="pageSize"
-        @page-change="onPageChange"
-        @page-size-change="onPageSizeChange"
-      >
-        <template #module="{ value }">
-          <Badge variant="secondary">
-            {{ value }}
-          </Badge>
-        </template>
-        <template #roles="{ value }">
-          <div class="flex flex-wrap gap-2">
-            <Badge
-              v-for="role in value"
-              :key="role.id"
-              variant="outline"
-            >
-              {{ role.name }}
-            </Badge>
-          </div>
-        </template>
-        <template #actions="{ row }">
-          <DropdownMenu>
-            <DropdownMenuTrigger as="div">
-              <Button variant="ghost" size="icon">
-                <MoreHorizontalIcon class="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem @click="openPermissionDialog(row)">
-                <PencilIcon class="h-4 w-4 mr-2" />
-                编辑
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                @click="deletePermission(row)"
-                class="text-destructive"
-                :disabled="row.isSystem"
-              >
-                <TrashIcon class="h-4 w-4 mr-2" />
-                删除
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </template>
-      </DataTable>
-    </Card>
+    <Tabs v-model="activeTab" class="w-full">
+      <TabsList class="grid w-full grid-cols-2">
+        <TabsTrigger value="list">权限列表</TabsTrigger>
+        <TabsTrigger value="preview">权限预览</TabsTrigger>
+      </TabsList>
+      <TabsContent value="list">
+        <MyNewDataTable :data="filteredPermissions" :columns="columns" filter_column="groupName"
+          @action="handleAction" />
+      </TabsContent>
+      <TabsContent value="preview">
+        <Card>
+          <CardHeader>
+            <CardTitle>权限预览</CardTitle>
+            <CardDescription>
+              查看所有可用的权限及其组织结构
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div class="space-y-6">
+              <div v-for="group in permissionGroups" :key="group.code" class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-lg font-semibold">{{ group.name }}</h3>
+                  <Badge variant="secondary">{{ group.code }}</Badge>
+                </div>
+                <div class="pl-4 space-y-2">
+                  <div v-for="permission in group.permissions" :key="permission.code"
+                    class="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
+                    <div>
+                      <p class="font-medium">{{ permission.actionName }}</p>
+                      <p class="text-sm text-muted-foreground">
+                        {{ permission.description || '无描述' }}
+                      </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <code class="px-2 py-1 rounded bg-muted">
+                    {{ permission.code }}
+                  </code>
+                      <Badge v-if="permission.isDeleted" variant="destructive">
+                        已禁用
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
 
-    <!-- 权限表单对话框 -->
+    <!-- 权限对话框 -->
     <Dialog :open="showDialog" @update:open="showDialog = $event">
       <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{{ editingPermission ? '编辑权限' : '新建权限' }}</DialogTitle>
+          <DialogTitle>{{ editing ? '编辑权限（ID:' + editing.id + '）' : '新建权限' }}</DialogTitle>
           <DialogDescription>
-            权限标识符格式为: 模块.操作，例如: user.create
+            {{ editing ? '修改权限信息' : '创建新的权限' }}
           </DialogDescription>
         </DialogHeader>
-        <Form
-          :validation-schema="permissionFormSchema"
-          @submit="form.handleSubmit(savePermission)"
-          v-slot="{ errors }"
-          class="space-y-4"
-        >
-          <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-2">
-                <Label for="module">所属模块</Label>
-                <Field
-                  name="module"
-                  v-slot="{ field }"
-                >
-                  <Select
-                    v-bind="field"
-                    :class="{ 'border-destructive': errors.module }"
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择模块" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>系统模块</SelectLabel>
-                        <SelectItem value="system">系统管理</SelectItem>
-                        <SelectItem value="user">用户管理</SelectItem>
-                        <SelectItem value="role">角色管理</SelectItem>
-                        <SelectItem value="permission">权限管理</SelectItem>
-                      </SelectGroup>
-                      <SelectGroup>
-                        <SelectLabel>业务模块</SelectLabel>
-                        <SelectItem value="question">题目管理</SelectItem>
-                        <SelectItem value="category">分类管理</SelectItem>
-                        <SelectItem value="tag">标签管理</SelectItem>
-                        <SelectItem value="subject">学科管理</SelectItem>
-                        <SelectItem value="grade">年级管理</SelectItem>
-                        <SelectItem value="source">来源管理</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <ErrorMessage name="module" class="text-sm text-destructive" />
-              </div>
-              <div class="space-y-2">
-                <Label for="action">操作类型</Label>
-                <Field
-                  name="action"
-                  v-slot="{ field }"
-                >
-                  <Select
-                    v-bind="field"
-                    :class="{ 'border-destructive': errors.action }"
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择操作" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="create">创建</SelectItem>
-                      <SelectItem value="read">查看</SelectItem>
-                      <SelectItem value="update">更新</SelectItem>
-                      <SelectItem value="delete">删除</SelectItem>
-                      <SelectItem value="manage">管理</SelectItem>
-                      <SelectItem value="import">导入</SelectItem>
-                      <SelectItem value="export">导出</SelectItem>
-                      <SelectItem value="publish">发布</SelectItem>
-                      <SelectItem value="audit">审核</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <ErrorMessage name="action" class="text-sm text-destructive" />
-              </div>
-            </div>
-            <div class="space-y-2">
-              <Label for="description">权限描述</Label>
-              <Field
-                name="description"
-                v-slot="{ field }"
-              >
-                <Input
-                  id="description"
-                  v-bind="field"
-                  :class="{ 'border-destructive': errors.description }"
-                />
-              </Field>
-              <ErrorMessage name="description" class="text-sm text-destructive" />
-            </div>
+        <form @submit="onSubmit" class="space-y-4 py-4">
+          <div class="grid grid-cols-2 gap-4">
+            <FormField v-slot="{ componentField }" name="groupName">
+              <FormItem>
+                <FormLabel required>分组名称</FormLabel>
+                <FormControl>
+                  <Input v-bind="componentField" placeholder="例如：用户管理" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <FormField v-slot="{ componentField }" name="groupCode">
+              <FormItem>
+                <FormLabel required>分组代码</FormLabel>
+                <FormControl>
+                  <Input v-bind="componentField" placeholder="例如：user" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
           </div>
+          <div class="grid grid-cols-2 gap-4">
+            <FormField v-slot="{ componentField }" name="actionName">
+              <FormItem>
+                <FormLabel required>操作名称</FormLabel>
+                <FormControl>
+                  <Input v-bind="componentField" placeholder="例如：创建用户" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <FormField v-slot="{ componentField }" name="actionCode">
+              <FormItem>
+                <FormLabel required>操作代码</FormLabel>
+                <FormControl>
+                  <Input v-bind="componentField" placeholder="例如：create" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </div>
+          <FormField v-slot="{ componentField }" name="description">
+            <FormItem>
+              <FormLabel>描述</FormLabel>
+              <FormControl>
+                <Textarea v-bind="componentField" placeholder="请输入权限描述" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              @click="showDialog = false"
-            >
+            <Button type="button" variant="outline" @click="showDialog = false">
               取消
             </Button>
             <Button type="submit" :loading="saving">
-              {{ editingPermission ? '保存' : '创建' }}
+              {{ editing ? '保存' : '创建' }}
             </Button>
           </DialogFooter>
-        </Form>
+        </form>
       </DialogContent>
     </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { SearchIcon, PlusIcon, MoreHorizontalIcon, PencilIcon, TrashIcon } from 'lucide-vue-next'
-import { useConfirm } from '@/composables/useConfirm'
-import type { Permission, Role } from '@prisma/client'
-import { useForm } from 'vee-validate'
-import * as z from 'zod'
+import { ref, computed } from 'vue'
+import { PlusIcon } from 'lucide-vue-next'
+import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
+import type { Permission } from '~/prisma/generated/zod'
+import { toast } from '~/components/shadcn/toast/use-toast'
+import { createColumnHelper } from '@tanstack/vue-table'
+import { columns } from '~/components/my/permissions/columns'
 
-interface PermissionWithRoles extends Permission {
-  roles: Role[]
-}
-
-// 表格列定义
-const columns = [
-  {
-    key: 'name',
-    title: '权限标识符'
-  },
-  {
-    key: 'module',
-    title: '所属模块',
-    format: (value: string) => value.split('.')[0]
-  },
-  {
-    key: 'description',
-    title: '描述'
-  },
-  {
-    key: 'roles',
-    title: '已分配角色'
-  },
-  {
-    key: 'createdAt',
-    title: '创建时间',
-    format: (value: string) => new Date(value).toLocaleString()
-  },
-  {
-    key: 'actions',
-    title: '操作',
-    width: 100
-  }
-]
+const columnHelper = createColumnHelper<Permission>()
 
 // 状态管理
 const loading = ref(false)
 const saving = ref(false)
 const showDialog = ref(false)
-const editingPermission = ref<PermissionWithRoles | null>(null)
-const permissions = ref<PermissionWithRoles[]>([])
+const editing = ref<Permission | null>(null)
+const permissions = ref<Permission[]>([])
 const total = ref(0)
-const currentPage = ref(1)
-const pageSize = ref(10)
+const activeTab = ref('list')
 const searchQuery = ref('')
 
-const confirm = useConfirm()
-
-// Permission form schema
-const permissionFormSchema = toTypedSchema(
+// 表单 schema
+const formSchema = toTypedSchema(
   z.object({
-    module: z.string().min(1, {
-      message: '请选择所属模块'
-    }),
-    action: z.string().min(1, {
-      message: '请选择操作类型'
-    }),
-    description: z.string().min(2, {
-      message: '描述至少需要2个字符'
-    })
+    groupName: z.string().min(2, { message: '名称至少需要2个字符' }),
+    groupCode: z.string().min(1, { message: '请输入分组代码' }),
+    actionName: z.string().min(2, { message: '名称至少需要2个字符' }),
+    actionCode: z.string().min(1, { message: '请输入操作代码' }),
+    description: z.string().optional()
   })
 )
 
-type PermissionFormValues = {
-  module: string;
-  action: string;
-  description: string;
-}
-
+// 表单
 const form = useForm({
-  validationSchema: permissionFormSchema,
+  validationSchema: formSchema,
   initialValues: {
-    module: '',
-    action: '',
+    groupName: '',
+    groupCode: '',
+    actionName: '',
+    actionCode: '',
     description: ''
   }
 })
 
+// 计算属性：过滤后的权限列表
+const filteredPermissions = computed(() => {
+  if (!searchQuery.value) return permissions.value
+
+  const query = searchQuery.value.toLowerCase()
+  return permissions.value.filter(p =>
+    p.groupName.toLowerCase().includes(query) ||
+    p.groupCode.toLowerCase().includes(query) ||
+    p.actionName.toLowerCase().includes(query) ||
+    p.actionCode.toLowerCase().includes(query) ||
+    p.code.toLowerCase().includes(query) ||
+    (p.description && p.description.toLowerCase().includes(query))
+  )
+})
+
+// 计算属性：按分组组织的权限列表
+const permissionGroups = computed(() => {
+  const groups: Record<string, {
+    name: string
+    code: string
+    permissions: Permission[]
+  }> = {}
+
+  for (const permission of permissions.value) {
+    if (!groups[permission.groupCode]) {
+      groups[permission.groupCode] = {
+        name: permission.groupName,
+        code: permission.groupCode,
+        permissions: []
+      }
+    }
+    groups[permission.groupCode].permissions.push(permission)
+  }
+
+  return Object.values(groups)
+})
+
 // 获取权限列表
-async function fetchPermissions() {
+const fetchPermissions = async () => {
   try {
     loading.value = true
-    const response = await fetch(`/api/permissions?page=${currentPage.value}&pageSize=${pageSize.value}&search=${searchQuery.value}`)
-    const data = await response.json()
-    permissions.value = data.items
-    total.value = data.total
+    const response = await $fetch('/api/admin/permissions')
+    permissions.value = response.items
+    total.value = response.total
   } catch (error) {
     console.error('获取权限列表失败:', error)
+    toast({ title: '获取权限列表失败' })
   } finally {
     loading.value = false
   }
 }
 
-// 打开权限对话框
-function openPermissionDialog(permission: PermissionWithRoles | null = null) {
-  editingPermission.value = permission
-  if (permission) {
-    const [module, action] = permission.name.split('.')
-    form.resetForm({
-      values: {
-        module,
-        action,
-        description: permission.description || ''
+// 处理表格操作
+const handleAction = async (action: string, permission?: Permission) => {
+  switch (action) {
+    case 'edit':
+      if (permission) {
+        openPermissionDialog(permission)
       }
+      break
+    case 'toggle':
+      if (permission) {
+        await togglePermission(permission)
+      }
+      break
+  }
+}
+
+// 打开权限对话框
+const openPermissionDialog = (permission: Permission | null = null) => {
+  editing.value = permission
+  if (permission) {
+    form.setValues({
+      groupName: permission.groupName,
+      groupCode: permission.groupCode,
+      actionName: permission.actionName,
+      actionCode: permission.actionCode,
+      description: permission.description || ''
     })
   } else {
     form.resetForm()
@@ -309,80 +257,64 @@ function openPermissionDialog(permission: PermissionWithRoles | null = null) {
   showDialog.value = true
 }
 
-// 保存权限信息
-async function savePermission(values: PermissionFormValues) {
-  const permissionName = `${values.module}.${values.action}`
-  
+// 提交表单
+const onSubmit = async (e: Event) => {
+  e.preventDefault()
+  const valid = await form.validate()
+  if (!valid) return
+  const values = form.values
   try {
     saving.value = true
-    const url = editingPermission.value
-      ? `/api/permissions/${editingPermission.value.id}`
-      : '/api/permissions'
-    const method = editingPermission.value ? 'PUT' : 'POST'
-    
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        name: permissionName,
-        description: values.description
+    const data = {
+      ...values,
+      code: `${values.groupCode}.${values.actionCode}`
+    }
+
+    if (editing.value) {
+      await $fetch(`/api/admin/permissions/${editing.value.id}`, {
+        method: 'PUT',
+        body: data
       })
-    })
-    
-    if (!response.ok) throw new Error('保存失败')
-    
+      toast({ title: '权限更新成功' })
+    } else {
+      await $fetch('/api/admin/permissions', {
+        method: 'POST',
+        body: data
+      })
+      toast({ title: '权限创建成功' })
+    }
+
     showDialog.value = false
-    fetchPermissions()
+    await fetchPermissions()
   } catch (error) {
     console.error('保存权限失败:', error)
+    toast({ title: '保存权限失败' })
   } finally {
     saving.value = false
   }
 }
 
-// 删除权限
-async function deletePermission(permission: Permission) {
+// 切换权限状态
+const togglePermission = async (permission: Permission) => {
+  const action = permission.isDeleted ? '启用' : '禁用'
   const confirmed = await useConfirm({
-    title: '确认删除',
-    content: `确定要删除权限 "${permission.name}" 吗？此操作不可恢复。`,
-    type: 'error',
-    confirmButton: {
-      text: '删除',
-      variant: 'destructive'
-    }
+    title: `${action}权限`,
+    content: `确定要${action}权限"${permission.actionName}"吗？`
   })
-  
+
   if (!confirmed) return
-  
+
   try {
-    const response = await fetch(`/api/permissions/${permission.id}`, {
-      method: 'DELETE'
+    await $fetch(`/api/admin/permissions/${permission.id}/toggle`, {
+      method: 'POST'
     })
-    
-    if (!response.ok) throw new Error('删除失败')
-    
-    fetchPermissions()
+    await fetchPermissions()
+    toast({ title: `${action}权限成功` })
   } catch (error) {
-    console.error('删除权限失败:', error)
+    console.error(`${action}权限失败:`, error)
+    toast({ title: `${action}权限失败` })
   }
 }
-
-// 分页处理
-function onPageChange(page: number) {
-  currentPage.value = page
-}
-
-function onPageSizeChange(size: number) {
-  pageSize.value = size
-  currentPage.value = 1
-}
-
-// 监听分页和搜索变化
-watch([currentPage, pageSize, searchQuery], () => {
-  fetchPermissions()
-})
 
 // 初始化
 onMounted(() => {
