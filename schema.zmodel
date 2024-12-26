@@ -1,0 +1,244 @@
+generator zod {
+  provider                         = "zod-prisma-types"
+  createOptionalDefaultValuesTypes = true
+  createRelationValuesTypes        = true
+  output                           = "./generated/zod"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["metrics"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+plugin hooks {
+  provider = '@zenstackhq/tanstack-query'
+  target = 'vue'
+  output = 'lib/hooks'
+}
+
+abstract model _Base {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+
+  // author has full access
+  @@allow('all', auth() != null)
+}
+
+abstract model Base extends _Base {
+  creatorId String? @default(auth().id) @map("creator_id")
+  updaterId String? @default(auth().id) @map("updater_id")
+
+  // author has full access
+  @@allow('all', auth() != null)
+}
+
+// 用户模型
+model User extends Base {
+  username             String        @unique @map("username")
+  email                String        @unique @map("email")
+  password             String        @map("password")
+  name                 String?       @map("name")
+
+  // 关联
+  roles                Role[]        @relation("user_roles")
+  createdRoles         Role[]        @relation("role_creator")
+  updatedRoles         Role[]        @relation("role_updater")
+  createdPermissions   Permission[]  @relation("permission_creator")
+  updatedPermissions   Permission[]  @relation("permission_updater")
+  createdCategories    Category[]    @relation("category_creator")
+  updatedCategories    Category[]    @relation("category_updater")
+  createdSubjects      Subject[]     @relation("subject_creator")
+  updatedSubjects      Subject[]     @relation("subject_updater")
+  createdGrades        Grade[]       @relation("grade_creator")
+  updatedGrades        Grade[]       @relation("grade_updater")
+  createdSources       Source[]      @relation("source_creator")
+  updatedSources       Source[]      @relation("source_updater")
+  createdQuestions     Question[]    @relation("question_creator")
+  updatedQuestions     Question[]    @relation("question_updater")
+  createdTags          Tag[]         @relation("tag_creator")
+  updatedTags          Tag[]         @relation("tag_updater")
+  systemLogs           SystemLog[]   @relation("user_logs")
+  createdTagCategories TagCategory[] @relation("tag_category_creator")
+  updatedTagCategories TagCategory[] @relation("tag_category_updater")
+
+  @@map("users")
+
+  // everybody can signup
+  @@allow('create', true)
+
+  // user profiles are public
+  @@allow('read', true)
+
+  // full access by self
+  @@allow('all', auth() == this)
+}
+
+// 角色模型
+model Role extends Base {
+  name        String       @unique @map("name")
+  code        String       @unique @map("code")
+  description String?      @map("description")
+
+  // 关联
+  users       User[]       @relation("user_roles")
+  permissions Permission[] @relation("role_permissions")
+  createdBy   User?        @relation("role_creator", fields: [creatorId], references: [id])
+  updatedBy   User?        @relation("role_updater", fields: [updaterId], references: [id])
+
+  @@map("roles")
+}
+
+// 权限模型
+model Permission extends Base {
+  groupName   String  @map("group_name")
+  groupCode   String  @map("group_code")
+  actionName  String  @map("action_name")
+  actionCode  String  @map("action_code")
+  code        String  @unique @map("code")
+  description String? @map("description")
+
+  // 关联
+  roles       Role[]  @relation("role_permissions")
+  createdBy   User?   @relation("permission_creator", fields: [creatorId], references: [id])
+  updatedBy   User?   @relation("permission_updater", fields: [updaterId], references: [id])
+
+  @@unique([groupCode, actionCode])
+  @@index([groupCode])
+  @@map("permissions")
+}
+
+// 题目分类模型
+model Category extends Base {
+  name        String     @unique @map("name")
+  description String?    @map("description")
+
+  // 关联
+  questions   Question[] @relation("category_questions")
+  createdBy   User?      @relation("category_creator", fields: [creatorId], references: [id])
+  updatedBy   User?      @relation("category_updater", fields: [updaterId], references: [id])
+
+  @@map("categories")
+}
+
+// 学科模型
+model Subject extends Base {
+  name        String     @unique @map("name")
+  description String?    @map("description")
+
+  // 关联
+  questions   Question[] @relation("subject_questions")
+  createdBy   User?      @relation("subject_creator", fields: [creatorId], references: [id])
+  updatedBy   User?      @relation("subject_updater", fields: [updaterId], references: [id])
+
+  @@map("subjects")
+}
+
+// 年级模型
+model Grade extends Base {
+  name        String     @unique @map("name")
+  description String?    @map("description")
+
+  // 关联
+  questions   Question[] @relation("grade_questions")
+  createdBy   User?      @relation("grade_creator", fields: [creatorId], references: [id])
+  updatedBy   User?      @relation("grade_updater", fields: [updaterId], references: [id])
+
+  @@map("grades")
+}
+
+// 题目来源模型
+model Source extends Base {
+  name        String     @unique @map("name")
+  type        String     @map("type")
+  description String?    @map("description")
+
+  // 关联
+  questions   Question[] @relation("source_questions")
+  createdBy   User?      @relation("source_creator", fields: [creatorId], references: [id])
+  updatedBy   User?      @relation("source_updater", fields: [updaterId], references: [id])
+
+  @@map("sources")
+}
+
+// 标签类别模型
+model TagCategory extends Base {
+  name          String  @unique @map("name")
+  code          String  @unique @map("code")
+  description   String? @map("description")
+  allowMultiple Boolean @default(false) @map("allow_multiple")
+  sortOrder     Int     @default(0) @map("sort_order")
+
+  // 关联
+  tags          Tag[]   @relation("category_tags")
+  createdBy     User?   @relation("tag_category_creator", fields: [creatorId], references: [id])
+  updatedBy     User?   @relation("tag_category_updater", fields: [updaterId], references: [id])
+
+  @@map("tag_categories")
+}
+
+// 标签模型
+model Tag extends Base {
+  name        String      @unique @map("name")
+  code        String?     @map("code")
+  description String?     @map("description")
+  sortOrder   Int         @default(0) @map("sort_order")
+  categoryId  String      @map("category_id")
+
+  // 关联
+  category    TagCategory @relation("category_tags", fields: [categoryId], references: [id])
+  questions   Question[]  @relation("tag_questions")
+  createdBy   User?       @relation("tag_creator", fields: [creatorId], references: [id])
+  updatedBy   User?       @relation("tag_updater", fields: [updaterId], references: [id])
+
+  @@unique([categoryId, name])
+  @@map("tags")
+}
+
+// 题目模型
+model Question extends Base {
+  title      String    @map("title")
+  content    String    @map("content")
+  answer     String?   @map("answer")
+  analysis   String?   @map("analysis")
+  difficulty Int       @default(1) @map("difficulty")
+  status     String    @default("DRAFT") @map("status")
+  categoryId String    @map("category_id")
+  subjectId  String    @map("subject_id")
+  gradeId    String    @map("grade_id")
+  sourceId   String?   @map("source_id")
+
+  // 关联
+  category   Category? @relation("category_questions", fields: [categoryId], references: [id])
+  subject    Subject?  @relation("subject_questions", fields: [subjectId], references: [id])
+  grade      Grade?    @relation("grade_questions", fields: [gradeId], references: [id])
+  source     Source?   @relation("source_questions", fields: [sourceId], references: [id])
+  tags       Tag[]     @relation("tag_questions")
+  createdBy  User?     @relation("question_creator", fields: [creatorId], references: [id])
+  updatedBy  User?     @relation("question_updater", fields: [updaterId], references: [id])
+
+  @@map("questions")
+}
+
+// 系统日志模型
+model SystemLog extends Base {
+  userId    String  @map("user_id")
+  module    String  @map("module")
+  action    String  @map("action")
+  target    String  @map("target")
+  targetId  String  @map("target_id")
+  detail    String? @map("detail")
+  ip        String? @map("ip")
+  userAgent String? @map("user_agent")
+
+  // 关联
+  user      User    @relation("user_logs", fields: [userId], references: [id])
+
+  @@map("system_logs")
+}

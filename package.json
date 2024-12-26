@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "prisma": {
-    "seed": "node prisma/seed.mjs"
+    "seed": "node prisma/seed/seed.mjs"
   },
   "scripts": {
     "build": "nuxt build",
@@ -54,7 +54,8 @@
     "vite-plugin-vuetify": "^2.0.4",
     "vue-tsc": "^2.2.0",
     "vuetify": "^3.7.6",
-    "vuetify-nuxt-module": "0.18.3"
+    "vuetify-nuxt-module": "0.18.3",
+    "zenstack": "2.10.2"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.8.2",
@@ -63,12 +64,16 @@
     "@mdi/font": "^7.4.47",
     "@pinia/nuxt": "^0.9.0",
     "@radix-ui/colors": "^3.0.0",
+    "@tanstack/vue-query": "^5.62.9",
     "@tanstack/vue-table": "^8.20.5",
     "@types/papaparse": "^5.3.15",
     "@unovis/ts": "^1.5.0",
     "@unovis/vue": "^1.5.0",
     "@vee-validate/nuxt": "^4.15.0",
     "@vee-validate/zod": "^4.15.0",
+    "@zenstackhq/runtime": "2.10.2",
+    "@zenstackhq/server": "^2.10.2",
+    "@zenstackhq/tanstack-query": "^2.10.2",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

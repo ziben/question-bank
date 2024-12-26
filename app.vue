@@ -11,17 +11,17 @@
 import { useToast } from '@/components/shadcn/toast/use-toast'
 import { useAppStore } from '@/stores/app'
 import { storeToRefs } from 'pinia'
+import { provideHooksContext } from './lib/hooks'
 
 // 全局 toast 实例
 const { toast } = useToast()
 provide('toast', toast)
 
-// 主题设置
-const { isDark } = storeToRefs(useAppStore())
-const colorMode = useColorMode()
-watchEffect(() => {
-  colorMode.preference = isDark.value ? 'dark' : 'dark'
-})
+// Provide tanstack-query context
+// Use an absolute endpoint so server-side fetch works too
+provideHooksContext({
+    endpoint: 'http://localhost:3000/api/model',
+});
 
 // 错误处理
 onErrorCaptured((error) => {

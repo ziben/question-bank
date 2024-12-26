@@ -1,7 +1,6 @@
+import type { User } from '@prisma/client'
 import { randomUUID } from 'uncrypto'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import prisma from '~/lib/prisma'
 
 export async function findUserByEmail(email: string): Promise<User> {
   const user = await prisma.user.findUnique({

@@ -81,11 +81,11 @@
                 <Avatar class="h-8 w-8 rounded-lg">
                   <!-- <AvatarImage :src="data.user.avatar" :alt="data.user.name" /> -->
                   <AvatarFallback class="rounded-lg">
-                    {{ authStore.user?.name.charAt(0).toUpperCase() }}
+                    {{ authStore.user?.username.charAt(0).toUpperCase() }}
                   </AvatarFallback>
                 </Avatar>
                 <div class="grid flex-1 text-left text-sm leading-tight">
-                  <span class="font-medium">{{ authStore.user?.name }}</span>
+                  <span class="font-medium">{{ authStore.user?.username }}</span>
                   <span class="text-xs text-muted-foreground">{{ authStore.user?.email }}</span>
                 </div>
                 <Icon name="lucide:chevrons-up-down" class="ml-auto size-4" />

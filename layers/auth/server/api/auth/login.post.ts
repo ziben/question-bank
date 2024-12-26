@@ -19,8 +19,9 @@ export default eventHandler(async (event) => {
 
   await session.update({
     id: user.id,
-    name: user.name,
+    name: user.name ?? user.username,
     email: user.email,
+    username: user.username,
   })
   return session
 })
