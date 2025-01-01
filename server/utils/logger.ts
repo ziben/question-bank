@@ -9,7 +9,7 @@ export class Logger {
     action,
     target,
     targetId,
-    details,
+    detail,
     userId,
     ip,
     userAgent,
@@ -19,8 +19,8 @@ export class Logger {
     action: LogAction
     target?: string
     targetId?: string
-    details: any
-    userId: number
+    detail: any
+    userId: string
     ip?: string
     userAgent?: string
     level?: LogLevel
@@ -37,8 +37,8 @@ export class Logger {
           action: action.name,
           target: target ?? '',
           targetId: targetId ?? '',
-          details: JSON.stringify(details),
-          level: level ? level : actionConfig.level,
+          detail: JSON.stringify(detail),
+          // level: level ? level : actionConfig.level,
           userId,
           ip,
           userAgent

@@ -18,9 +18,9 @@ export const columns: ColumnDef<RoleWithRelations>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'id',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'ID' }),
-    cell: ({ row }) => h('div', { class: 'w-5' }, row.getValue('id')),
+    accessorKey: 'code',
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: '代码' }),
+    cell: ({ row }) => h('div', { class: 'w-5' }, row.getValue('code')),
     enableSorting: false,
     enableHiding: false,
   },
@@ -36,6 +36,7 @@ export const columns: ColumnDef<RoleWithRelations>[] = [
     },
   },
   {
+    id: 'description',
     accessorKey: 'description',
     header: ({ column }) => h(DataTableColumnHeader, { column, title: '描述' }),
     cell: ({ row }) => h('div', { class: 'w-200' }, row.getValue('description')),

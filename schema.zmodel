@@ -37,6 +37,7 @@ abstract model Base extends _Base {
 
   // author has full access
   @@allow('all', auth() != null)
+  @@deny('read', isDeleted)
 }
 
 // 用户模型

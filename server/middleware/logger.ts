@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
       action,
       userId: user.id,
       level: LOG_LEVELS.INFO,
-      details: {
+      detail: {
         type: 'request',
         method,
         url,

@@ -22,61 +22,113 @@ const roles = [
     name: "系统管理员",
     code: "admin",
     description: "系统最高权限管理员",
-    permissions: JSON.stringify(["*"]),
+    permissions: JSON.stringify(["*"]), // 保持不变，表示所有权限
   },
   {
     name: "教师",
     code: "teacher",
     description: "可以创建和管理题目、试卷",
-    permissions: JSON.stringify(["question.*", "exam.*"]),
+    permissions: JSON.stringify([
+      "question.create", 
+      "question.edit", 
+      "question.delete", 
+      "question.view",
+      "exam.create",
+      "exam.edit",
+      "exam.delete",
+      "exam.view"
+    ]),
   },
   {
     name: "学生",
     code: "student",
     description: "可以参与考试和查看成绩",
-    permissions: JSON.stringify(["exam.take", "exam.view"]),
+    permissions: JSON.stringify([
+      "exam.view",
+      "exam.take",
+      "score.view"
+    ]),
   },
   {
     name: "教务主任",
     code: "academic_director",
     description: "负责教学计划和课程管理",
-    permissions: JSON.stringify(["course.*", "plan.*"]),
+    permissions: JSON.stringify([
+      "course.create",
+      "course.edit",
+      "course.delete",
+      "course.view",
+      "plan.create",
+      "plan.edit",
+      "plan.delete",
+      "plan.view"
+    ]),
   },
   {
     name: "题库管理员",
     code: "question_bank_admin",
     description: "专门负责题库的维护和审核",
-    permissions: JSON.stringify(["question.*"]),
+    permissions: JSON.stringify([
+      "question.create",
+      "question.edit",
+      "question.delete",
+      "question.view",
+      "question.audit"
+    ]),
   },
   {
     name: "考试监督员",
     code: "exam_supervisor",
     description: "负责监考和考试过程管理",
-    permissions: JSON.stringify(["exam.*"]),
+    permissions: JSON.stringify([
+      "exam.view",
+      "exam.supervise",
+      "exam.manage"
+    ]),
   },
   {
     name: "学科组长",
     code: "subject_leader",
     description: "负责特定学科的教学管理",
-    permissions: JSON.stringify(["subject.*"]),
+    permissions: JSON.stringify([
+      "subject.create",
+      "subject.edit",
+      "subject.delete",
+      "subject.view",
+      "question.audit"
+    ]),
   },
   {
     name: "教研组长",
     code: "teaching_group_leader",
     description: "负责教研活动和教学改进",
-    permissions: JSON.stringify(["research.*"]),
+    permissions: JSON.stringify([
+      "research.create",
+      "research.edit",
+      "research.delete",
+      "research.view"
+    ]),
   },
   {
     name: "年级主任",
     code: "grade_director",
     description: "负责年级的教学管理工作",
-    permissions: JSON.stringify(["grade.*"]),
+    permissions: JSON.stringify([
+      "grade.create",
+      "grade.edit",
+      "grade.delete",
+      "grade.view",
+      "class.manage"
+    ]),
   },
   {
     name: "访客",
     code: "guest",
     description: "有限的只读权限",
-    permissions: JSON.stringify(["view"]),
+    permissions: JSON.stringify([
+      "question.view",
+      "exam.view"
+    ]),
   },
 ];
 
@@ -183,6 +235,14 @@ const permissions = [
     code: "question.view",
     description: "查看题目",
   },
+  {
+    groupName: "题目管理",
+    groupCode: "question",
+    actionName: "审核题目",
+    actionCode: "audit",
+    code: "question.audit",
+    description: "审核题目",
+  },
 
   // 考试管理
   {
@@ -224,6 +284,212 @@ const permissions = [
     actionCode: "take",
     code: "exam.take",
     description: "参加考试",
+  },
+  {
+    groupName: "考试管理",
+    groupCode: "exam",
+    actionName: "监考",
+    actionCode: "supervise",
+    code: "exam.supervise",
+    description: "监考考试",
+  },
+  {
+    groupName: "考试管理",
+    groupCode: "exam",
+    actionName: "管理考试",
+    actionCode: "manage",
+    code: "exam.manage",
+    description: "管理考试进行",
+  },
+
+  // 成绩管理
+  {
+    groupName: "成绩管理",
+    groupCode: "score",
+    actionName: "查看成绩",
+    actionCode: "view",
+    code: "score.view",
+    description: "查看成绩",
+  },
+
+  // 课程管理
+  {
+    groupName: "课程管理",
+    groupCode: "course",
+    actionName: "创建课程",
+    actionCode: "create",
+    code: "course.create",
+    description: "创建新课程",
+  },
+  {
+    groupName: "课程管理",
+    groupCode: "course",
+    actionName: "编辑课程",
+    actionCode: "edit",
+    code: "course.edit",
+    description: "编辑课程信息",
+  },
+  {
+    groupName: "课程管理",
+    groupCode: "course",
+    actionName: "删除课程",
+    actionCode: "delete",
+    code: "course.delete",
+    description: "删除课程",
+  },
+  {
+    groupName: "课程管理",
+    groupCode: "course",
+    actionName: "查看课程",
+    actionCode: "view",
+    code: "course.view",
+    description: "查看课程信息",
+  },
+
+  // 教学计划
+  {
+    groupName: "教学计划",
+    groupCode: "plan",
+    actionName: "创建计划",
+    actionCode: "create",
+    code: "plan.create",
+    description: "创建教学计划",
+  },
+  {
+    groupName: "教学计划",
+    groupCode: "plan",
+    actionName: "编辑计划",
+    actionCode: "edit",
+    code: "plan.edit",
+    description: "编辑教学计划",
+  },
+  {
+    groupName: "教学计划",
+    groupCode: "plan",
+    actionName: "删除计划",
+    actionCode: "delete",
+    code: "plan.delete",
+    description: "删除教学计划",
+  },
+  {
+    groupName: "教学计划",
+    groupCode: "plan",
+    actionName: "查看计划",
+    actionCode: "view",
+    code: "plan.view",
+    description: "查看教学计划",
+  },
+
+  // 年级管理
+  {
+    groupName: "年级管理",
+    groupCode: "grade",
+    actionName: "创建年级",
+    actionCode: "create",
+    code: "grade.create",
+    description: "创建年级",
+  },
+  {
+    groupName: "年级管理",
+    groupCode: "grade",
+    actionName: "编辑年级",
+    actionCode: "edit",
+    code: "grade.edit",
+    description: "编辑年级信息",
+  },
+  {
+    groupName: "年级管理",
+    groupCode: "grade",
+    actionName: "删除年级",
+    actionCode: "delete",
+    code: "grade.delete",
+    description: "删除年级",
+  },
+  {
+    groupName: "年级管理",
+    groupCode: "grade",
+    actionName: "查看年级",
+    actionCode: "view",
+    code: "grade.view",
+    description: "查看年级信息",
+  },
+
+  // 班级管理
+  {
+    groupName: "班级管理",
+    groupCode: "class",
+    actionName: "管理班级",
+    actionCode: "manage",
+    code: "class.manage",
+    description: "管理班级",
+  },
+
+  // 学科管理
+  {
+    groupName: "学科管理",
+    groupCode: "subject",
+    actionName: "创建学科",
+    actionCode: "create",
+    code: "subject.create",
+    description: "创建学科",
+  },
+  {
+    groupName: "学科管理",
+    groupCode: "subject",
+    actionName: "编辑学科",
+    actionCode: "edit",
+    code: "subject.edit",
+    description: "编辑学科信息",
+  },
+  {
+    groupName: "学科管理",
+    groupCode: "subject",
+    actionName: "删除学科",
+    actionCode: "delete",
+    code: "subject.delete",
+    description: "删除学科",
+  },
+  {
+    groupName: "学科管理",
+    groupCode: "subject",
+    actionName: "查看学科",
+    actionCode: "view",
+    code: "subject.view",
+    description: "查看学科信息",
+  },
+
+  // 教研管理
+  {
+    groupName: "教研管理",
+    groupCode: "research",
+    actionName: "创建教研",
+    actionCode: "create",
+    code: "research.create",
+    description: "创建教研活动",
+  },
+  {
+    groupName: "教研管理",
+    groupCode: "research",
+    actionName: "编辑教研",
+    actionCode: "edit",
+    code: "research.edit",
+    description: "编辑教研活动",
+  },
+  {
+    groupName: "教研管理",
+    groupCode: "research",
+    actionName: "删除教研",
+    actionCode: "delete",
+    code: "research.delete",
+    description: "删除教研活动",
+  },
+  {
+    groupName: "教研管理",
+    groupCode: "research",
+    actionName: "查看教研",
+    actionCode: "view",
+    code: "research.view",
+    description: "查看教研活动",
   },
 ];
 
@@ -372,24 +638,32 @@ const generateQuestions = async (userId) => {
   for (let i = 0; i < 1000; i++) {
     //随机从categories数组中选择一个元素
     const category = categories[Math.floor(Math.random() * categories.length)];
-    const categoryId = (await prisma.category.findUnique({
-      where: { name: category.name },
-    })).id;
-    
+    const categoryId = (
+      await prisma.category.findUnique({
+        where: { name: category.name },
+      })
+    ).id;
+
     const subject = subjects[Math.floor(Math.random() * subjects.length)];
-    const subjectId = (await prisma.subject.findUnique({
-      where: { name: subject.name },
-    })).id;
+    const subjectId = (
+      await prisma.subject.findUnique({
+        where: { name: subject.name },
+      })
+    ).id;
 
     const grade = grades[Math.floor(Math.random() * grades.length)];
-    const gradeId = (await prisma.grade.findUnique({
-      where: { name: grade.name },
-    })).id;
+    const gradeId = (
+      await prisma.grade.findUnique({
+        where: { name: grade.name },
+      })
+    ).id;
 
     const source = sources[Math.floor(Math.random() * sources.length)];
-    const sourceId = (await prisma.source.findUnique({
-      where: { name: source.name },
-    })).id;
+    const sourceId = (
+      await prisma.source.findUnique({
+        where: { name: source.name },
+      })
+    ).id;
 
     const difficulty = Math.floor(Math.random() * 5) + 1;
 
@@ -439,16 +713,41 @@ const main = async () => {
     for (const role of roles) {
       const { permissions, ...roleData } = role;
       const permissionsArr = JSON.parse(permissions);
-      console.log(permissionsArr);
+      console.log(`角色 ${roleData.name} 的权限列表:`, permissionsArr);
 
-      const p = await prisma.permission.findMany({
-        where: {
-          code: {
-            in: permissionsArr,
-          },
-        },
-      });
-      console.log(p);
+      let permissionsToConnect = [];
+
+      // 使用 Promise.all 等待所有权限查询完成
+      await Promise.all(
+        permissionsArr.map(async (permission) => {
+          if (permission === "*") {
+            // 如果是 * 则获取所有权限
+            const allPermissions = await prisma.permission.findMany();
+            permissionsToConnect.push(...allPermissions.map(p => ({ id: p.id })));
+          } else if (permission.includes(".*")) {
+            // 如果包含 .* 则获取该前缀下的所有权限
+            const prefix = permission.replace(".*", "");
+            const groupPermissions = await prisma.permission.findMany({
+              where: {
+                code: { startsWith: prefix },
+              },
+            });
+            permissionsToConnect.push(...groupPermissions.map(p => ({ id: p.id })));
+          } else {
+            // 具体的单个权限
+            const singlePermission = await prisma.permission.findUnique({
+              where: {
+                code: permission,
+              },
+            });
+            if (singlePermission) {
+              permissionsToConnect.push({ id: singlePermission.id });
+            }
+          }
+        })
+      );
+
+      console.log(`角色 ${roleData.name} 最终权限列表:`, permissionsToConnect);
 
       await prisma.role.create({
         data: {
@@ -456,7 +755,7 @@ const main = async () => {
           createdBy: { connect: { id: admin.id } },
           updatedBy: { connect: { id: admin.id } },
           permissions: {
-            connect: p,
+            connect: permissionsToConnect
           },
         },
       });

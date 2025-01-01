@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import prisma from '~/server/utils/prisma'
+import prisma from '~/lib/prisma'
 
 // 查询参数验证schema
 const querySchema = z.object({

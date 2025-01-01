@@ -19,8 +19,10 @@ provide('toast', toast)
 
 // Provide tanstack-query context
 // Use an absolute endpoint so server-side fetch works too
+const runtimeConfig = useRuntimeConfig();
+const crudApiEndpoint = `${runtimeConfig.public.deploymentUrl}/api/model`;
 provideHooksContext({
-    endpoint: 'http://localhost:3000/api/model',
+    endpoint: crudApiEndpoint,
 });
 
 // 错误处理

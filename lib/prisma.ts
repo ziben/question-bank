@@ -19,17 +19,21 @@ const prismaClientSingleton = () => {
     },
     query: {
       $allModels: {
-        $allOperations({ model, operation, args, query }) {
+        $allOperations({ model, operation, args, query }) : any {
           // Check incoming query type
           if (operation == 'delete') {
-            args.where['isDeleted'] = true
+            // translate "delete" to "update"
+            return (prisma as any)[model].update({
+              ...args,
+              data: { isDeleted: true },
+            });
           }
           if (operation == 'deleteMany') {
-            if (args.data != undefined) {
-              args.data['isDeleted'] = true
-            } else {
-              args['data'] = { isDeleted: true }
-            }
+            // translate "delete" to "update"
+            return (prisma as any)[model].update({
+              ...args,
+              data: { isDeleted: true },
+            });
           }
           return query(args)
         },

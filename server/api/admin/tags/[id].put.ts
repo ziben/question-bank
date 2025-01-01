@@ -1,5 +1,5 @@
-import prisma from '~/server/utils/prisma'
 import { z } from 'zod'
+import prisma from '~/lib/prisma'
 
 // 请求体验证schema
 const bodySchema = z.object({
