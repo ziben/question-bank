@@ -1,122 +1,114 @@
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-semibold tracking-tight">用户管理</h1>
-      <div class="flex items-center gap-4">
-        <div class="relative w-64">
-          <Input v-model="searchQuery" placeholder="搜索用户..." class="w-full">
-          <template #prefix>
-            <SearchIcon class="h-4 w-4 text-muted-foreground" />
-          </template>
-          </Input>
-        </div>
-        <Button @click="openUserDialog()">
-          <PlusIcon class="h-4 w-4 mr-2" />
-          新建用户
-        </Button>
+  <div class="hidden h-full flex-1 flex-col space-y-8 p-1 md:flex">
+    <div class="flex items-center justify-between space-y-2">
+      <div>
+        <h2 class="text-2xl font-bold tracking-tight">
+          用户管理
+        </h2>
+        <p class="text-muted-foreground">
+          管理系统中的用户账号及其角色
+        </p>
       </div>
+      <Button @click="openUserDialog(null)">
+        新建用户
+      </Button>
     </div>
 
     <Card>
-      <DataTable :columns="columns" :data="users" :total="total" :loading="loading" :current-page="currentPage"
-        :page-size="pageSize" @page-change="onPageChange" @page-size-change="onPageSizeChange">
-        <template #roles="{ value }">
-          <div class="flex flex-wrap gap-2">
-            <Badge v-for="role in value" :key="role.id" variant="secondary">
-              {{ role.name }}
-            </Badge>
-          </div>
-        </template>
-        <template #actions="{ row }">
-          <DropdownMenu>
-            <DropdownMenuTrigger as="div">
-              <Button variant="ghost" size="icon">
-                <MoreHorizontalIcon class="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem @click="openUserDialog(row)">
-                <PencilIcon class="h-4 w-4 mr-2" />
-                编辑
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="openRoleDialog(row)">
-                <TrashIcon class="h-4 w-4 mr-2" />
-                角色设置
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="handleDeleteUser(row)" class="text-destructive">
-                <TrashIcon class="h-4 w-4 mr-2" />
-                删除
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </template>
-      </DataTable>
+      <MyNewDataTable 
+        :data="users || []" 
+        :columns="columns" 
+        :filter_column="'username'" 
+        :pagination="{
+          page: currentPage,
+          pageSize: pageSize,
+          total: total || 0,
+          onPageChange: handlePagination.onPageChange,
+          onPageSizeChange: handlePagination.onPageSizeChange
+        }" 
+        @action="handleAction" 
+      />
     </Card>
 
     <!-- 用户表单对话框 -->
     <Dialog :open="showUserDialog" @update:open="showUserDialog = $event">
       <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{{ editingUser ? '编辑用户' : '新建用户' }}</DialogTitle>
+          <DialogTitle>{{ editingUser ? '编辑用户（ID:' + editingUser.id + '）' : '新建用户' }}</DialogTitle>
+          <DialogDescription>
+            {{ editingUser ? '修改用户信息' : '创建新的用户并设置基本信息' }}
+          </DialogDescription>
         </DialogHeader>
-        <Form :initial-values="initialValues" @submit="onSubmit" class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <FormField
-              name="username"
-              :validate="validationRules.username.validate"
-              v-slot="{ field, errors }"
-            >
-              <FormItem>
-                <FormLabel>用户名</FormLabel>
-                <FormControl>
-                  <Input v-bind="field" :disabled="!!editingUser" />
-                </FormControl>
-                <FormMessage>{{ errors[0] }}</FormMessage>
-              </FormItem>
-            </FormField>
+        <form @submit="onSubmit" class="space-y-4 py-4">
+          <FormField v-slot="{ componentField }" name="username">
+            <FormItem>
+              <FormLabel required>用户名</FormLabel>
+              <FormControl>
+                <Input v-bind="componentField" placeholder="输入用户名" :disabled="!!editingUser" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-            <FormField
-              name="email"
-              :validate="validationRules.email.validate"
-              v-slot="{ field, errors }"
-            >
-              <FormItem>
-                <FormLabel>邮箱</FormLabel>
-                <FormControl>
-                  <Input type="email" v-bind="field" />
-                </FormControl>
-                <FormMessage>{{ errors[0] }}</FormMessage>
-              </FormItem>
-            </FormField>
+          <FormField v-slot="{ componentField }" name="email">
+            <FormItem>
+              <FormLabel required>邮箱</FormLabel>
+              <FormControl>
+                <Input v-bind="componentField" placeholder="输入邮箱地址" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-            <FormField
-              name="name"
-              v-slot="{ field }"
-            >
-              <FormItem>
-                <FormLabel>姓名</FormLabel>
-                <FormControl>
-                  <Input v-bind="field" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+          <FormField v-slot="{ value, handleChange }" name="roleIds">
+            <FormItem>
+              <FormLabel required>角色</FormLabel>
+              <FormControl>
+                <Select
+                  :model-value="value"
+                  :multiple="true"
+                  @update:model-value="handleChange"
+                >
+                  <SelectTrigger class="w-full">
+                    <SelectValue :placeholder="'选择用户角色'" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>角色列表</SelectLabel>
+                      <SelectItem 
+                        v-for="role in roles" 
+                        :key="role.id" 
+                        :value="role.id"
+                      >
+                        {{ role.name }}
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormDescription>
+                用户可以拥有多个角色，这将决定用户的权限范围
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-            <FormField
-              name="password"
-              :validate="validationRules.password"
-              v-slot="{ field, errors }"
-            >
-              <FormItem>
-                <FormLabel>密码</FormLabel>
-                <FormControl>
-                  <Input type="password" v-bind="field" :placeholder="editingUser ? '不修改请留空' : ''" />
-                </FormControl>
-                <FormMessage>{{ errors[0] }}</FormMessage>
-              </FormItem>
-            </FormField>
-          </div>
+          <FormField v-slot="{ componentField }" name="password">
+            <FormItem>
+              <FormLabel>{{ editingUser ? '新密码' : '密码' }}</FormLabel>
+              <FormControl>
+                <Input 
+                  v-bind="componentField" 
+                  type="password" 
+                  :placeholder="editingUser ? '不修改请留空' : '请输入密码'" 
+                />
+              </FormControl>
+              <FormDescription v-if="editingUser">
+                如果不需要修改密码，请留空
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
           <DialogFooter>
             <Button type="button" variant="outline" @click="showUserDialog = false">
@@ -126,238 +118,210 @@
               {{ editingUser ? '保存' : '创建' }}
             </Button>
           </DialogFooter>
-        </Form>
+        </form>
       </DialogContent>
     </Dialog>
 
-    <!-- 角色设置对话框 -->
-    <Dialog :open="showRoleDialog" @update:open="showRoleDialog = $event">
-      <DialogContent class="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>角色设置 - {{ editingUser?.username }}</DialogTitle>
-        </DialogHeader>
-        <div class="space-y-4">
-          <div class="space-y-2">
-            <Label>已分配角色</Label>
-            <div class="flex flex-wrap gap-2">
-              <Badge v-for="role in selectedRoles" :key="role.id" variant="secondary"
-                class="cursor-pointer hover:bg-destructive" @click="removeRole(role)">
-                {{ role.name }}
-                <XIcon class="h-3 w-3 ml-1" />
-              </Badge>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <Label>可选角色</Label>
-            <div class="flex flex-wrap gap-2">
-              <Badge v-for="role in availableRoles" :key="role.id" variant="outline"
-                class="cursor-pointer hover:bg-primary hover:text-primary-foreground" @click="addRole(role)">
-                {{ role.name }}
-                <PlusIcon class="h-3 w-3 ml-1" />
-              </Badge>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" @click="showRoleDialog = false">
-              取消
-            </Button>
-            <Button @click="saveRoles" :loading="savingRoles">
-              保存
-            </Button>
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      v-model:open="isOpen"
+      v-bind="options"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { SearchIcon, PlusIcon, MoreHorizontalIcon, PencilIcon, TrashIcon, XIcon } from 'lucide-vue-next'
-import { useUsers, type UserWithRoles, type UserFormData } from '@/composables/useUsers'
-import { useRoles } from '@/composables/useRoles'
-import type { User, Role } from '@prisma/client'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/shadcn/form'
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/shadcn/form'
+import { useToast } from '@/components/shadcn/toast/use-toast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import { toTypedSchema } from '@vee-validate/zod'
+import { useForm } from 'vee-validate'
+import * as z from 'zod'
+import { columns } from '@/components/my/users/columns'
+import { useUserManagement } from '~/composables/useUserManagement'
+import { useCreateUser, useUpdateUser, useDeleteUser } from '~/lib/hooks'
+import type { UserWithRelations } from '~/prisma/generated/zod'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import { Button } from '@/components/shadcn/button'
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
 
-// 表格列定义
-const columns = [
-  {
-    key: 'username',
-    title: '用户名'
-  },
-  {
-    key: 'email',
-    title: '邮箱'
-  },
-  {
-    key: 'name',
-    title: '姓名'
-  },
-  {
-    key: 'roles',
-    title: '角色'
-  },
-  {
-    key: 'createdAt',
-    title: '创建时间',
-    format: (value: string) => new Date(value).toLocaleString()
-  },
-  {
-    key: 'actions',
-    title: '操作',
-    width: 100
-  }
-]
+const { toast } = useToast()
+const { isOpen, options, confirm, handleConfirm, handleCancel } = useConfirmDialog()
 
-// 用户管理
+// 用户表单模式
+const userFormSchema = toTypedSchema(
+  z.object({
+    username: z.string().min(2, {
+      message: '用户名至少需要2个字符'
+    }),
+    email: z.string().email({
+      message: '请输入有效的邮箱地址'
+    }),
+    roleIds: z.array(z.string(), {
+      required_error: '请选择用户角色'
+    }),
+    password: z.string().optional().transform(val => val || undefined)
+  })
+)
+
+interface UserFormValues {
+  username: string
+  email: string
+  roleIds: string[]
+  password?: string
+}
+
+const form = useForm<UserFormValues>({
+  validationSchema: userFormSchema,
+})
+
+const { mutateAsync: createUser } = useCreateUser()
+const { mutateAsync: updateUser } = useUpdateUser()
+const { mutateAsync: deleteUser } = useDeleteUser()
+
 const {
   users,
-  total,
-  loading,
+  roles,
+  saving,
+  showUserDialog,
+  editingUser,
   currentPage,
   pageSize,
-  searchQuery,
-  fetchUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-  updateUserRoles,
-  onPageChange,
-  onPageSizeChange
-} = useUsers()
+  total,
+  handlePagination,
+  refetchUsers
+} = useUserManagement()
 
-// 角色管理
-const {
-  roles,
-  selectedRoles,
-  availableRoles,
-  fetchRoles,
-  setSelectedRoles,
-  addRole,
-  removeRole
-} = useRoles()
+// 处理表格操作
+const handleAction = async (action: string, user?: UserWithRelations) => {
+  if (!user) return
 
-// 状态管理
-const saving = ref(false)
-const savingRoles = ref(false)
-const showUserDialog = ref(false)
-const showRoleDialog = ref(false)
-const editingUser = ref<UserWithRoles | null>(null)
-
-// 表单验证规则
-const validationRules = {
-  username: {
-    required: true,
-    min: 3,
-    validate: (value: string) => value.length >= 3 || '用户名至少3个字符'
-  },
-  email: {
-    required: true,
-    email: true,
-    validate: (value: string) => /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value) || '请输入有效的邮箱地址'
-  },
-  password: computed(() => ({
-    required: !editingUser.value,
-    min: 6,
-    validate: (value: string) => {
-      if (!editingUser.value && !value) return '密码不能为空'
-      if (value && value.length < 6) return '密码至少6个字符'
-      return true
-    }
-  }))
+  switch (action) {
+    case 'edit':
+      openUserDialog(user)
+      break
+    case 'delete':
+      await onDeleteUser(user)
+      break
+  }
 }
 
 // 打开用户对话框
-const openUserDialog = (user: UserWithRoles | null = null) => {
+const openUserDialog = (user: UserWithRelations | null = null) => {
   editingUser.value = user
   if (user) {
-    initialValues.value = {
+    form.setValues({
       username: user.username,
       email: user.email,
-      name: user.name || '',
-      password: ''
-    }
+      roleIds: user.roles.map(role => role.id),
+      password: undefined
+    })
   } else {
-    initialValues.value = {
-      username: '',
-      email: '',
-      name: '',
-      password: ''
-    }
+    form.resetForm()
   }
   showUserDialog.value = true
 }
 
-// 保存用户信息
-const onSubmit = async (values: any) => {
-  saving.value = true
+// 删除用户
+const onDeleteUser = async (user: UserWithRelations) => {
+  const confirmed = await confirm({
+    title: '确认操作',
+    content: `确定要${user.isDeleted ? '恢复' : '禁用'}用户 "${user.username}" 吗？`,
+    confirmText: user.isDeleted ? '恢复' : '禁用',
+    cancelText: '取消',
+    variant: user.isDeleted ? 'default' : 'destructive'
+  })
+
+  if (!confirmed) return
+
+  try {
+    await updateUser({
+      where: { id: user.id },
+      data: { isDeleted: !user.isDeleted }
+    })
+    toast({
+      title: '操作成功',
+      description: `用户 "${user.username}" 已${user.isDeleted ? '恢复' : '禁用'}`,
+    })
+    await refetchUsers()
+  } catch (e) {
+    console.error('操作失败:', e)
+    toast({
+      title: '错误',
+      description: '操作失败，请重试',
+      variant: 'destructive'
+    })
+  }
+}
+
+// 保存用户
+const saveUser = async (values: UserFormValues) => {
   try {
     if (editingUser.value) {
-      await updateUser(editingUser.value.id, values)
+      await updateUser({
+        where: { id: editingUser.value.id },
+        data: {
+          email: values.email,
+          password: values.password,
+          roles: {
+            set: values.roleIds.map(id => ({ id }))
+          }
+        }
+      })
+      toast({
+        title: '更新成功',
+        description: `用户 "${values.username}" 信息已更新`,
+      })
     } else {
-      await createUser(values)
+      await createUser({
+        data: {
+          username: values.username,
+          email: values.email,
+          password: values.password!,
+          roles: {
+            connect: values.roleIds.map(id => ({ id }))
+          }
+        }
+      })
+      toast({
+        title: '创建成功',
+        description: `用户 "${values.username}" 已创建`,
+      })
     }
     showUserDialog.value = false
-    await fetchUsers()
-  } catch (error) {
-    console.error('保存用户失败:', error)
-  } finally {
-    saving.value = false
+    await refetchUsers()
+  } catch (e) {
+    console.error(editingUser.value ? '更新失败:' : '创建失败:', e)
+    toast({
+      title: editingUser.value ? '更新失败' : '创建失败',
+      description: '操作失败，请重试',
+      variant: 'destructive'
+    })
   }
 }
 
-const initialValues = ref({
-  username: '',
-  email: '',
-  name: '',
-  password: ''
-})
-
-// 打开角色设置对话框
-const openRoleDialog = (user: UserWithRoles) => {
-  editingUser.value = user
-  setSelectedRoles(user.roles)
-  showRoleDialog.value = true
-}
-
-// 保存角色设置
-async function saveRoles() {
-  if (!editingUser.value) return
-
-  try {
-    savingRoles.value = true
-    await updateUserRoles(
-      editingUser.value.id,
-      selectedRoles.value.map(role => role.id)
-    )
-    showRoleDialog.value = false
-    await fetchUsers()
-  } catch (error) {
-    console.error('保存角色失败:', error)
-  } finally {
-    savingRoles.value = false
+// 表单提交处理
+const onSubmit = async (e: Event) => {
+  e.preventDefault()
+  const result = await form.validate()
+  if (result.valid) {
+    await saveUser(form.values)
   }
 }
-
-// 处理删除用户
-async function handleDeleteUser(user: User) {
-  try {
-    const success = await deleteUser(user)
-    if (success) {
-      await fetchUsers()
-    }
-  } catch (error) {
-    console.error('删除用户失败:', error)
-  }
-}
-
-// 初始化
-onMounted(async () => {
-  await Promise.all([fetchUsers(), fetchRoles()])
-})
-
-// 监听分页和搜索变化
-watch([currentPage, pageSize, searchQuery], () => {
-  fetchUsers()
-})
 </script>

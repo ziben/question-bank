@@ -32,9 +32,9 @@ const props = defineProps<DataTableRowActionsProps>()
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-[160px]">
       <DropdownMenuItem @click="$emit('action', 'edit', row.original)">编辑</DropdownMenuItem>
-      <DropdownMenuItem @click="$emit('action', 'toggle', row.original.id)">切换</DropdownMenuItem>
+      <DropdownMenuItem @click="$emit('action', 'toggle', row.original)">切换</DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem @click="$emit('action', 'delete', row.original.id)">
+      <DropdownMenuItem @click="$emit('action', 'delete', row.original)">
         删除
         <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
       </DropdownMenuItem>

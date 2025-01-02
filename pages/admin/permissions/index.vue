@@ -3,15 +3,23 @@
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-semibold tracking-tight">权限管理</h1>
     </div>
-
+    <!-- 确认对话框 -->
+    <ConfirmDialog v-model:open="isConfirmOpen" :title="options.title" :content="options.content"
+      :confirm-text="options.confirmText" :cancel-text="options.cancelText" :variant="options.variant"
+      @confirm="handleConfirm" @cancel="handleCancel" />
     <Tabs v-model="activeTab" class="w-full">
       <TabsList class="grid w-full grid-cols-2">
         <TabsTrigger value="list">权限列表</TabsTrigger>
         <TabsTrigger value="preview">权限预览</TabsTrigger>
       </TabsList>
       <TabsContent value="list">
-        <MyNewDataTable :data="filteredPermissions" :columns="columns" filter_column="groupName"
-          @action="handleAction" />
+        <MyNewDataTable :data="filteredPermissions || []" :columns="columns" filter_column="groupName" :pagination="{
+          page: currentPage,
+          pageSize: pageSize,
+          total: total || 0,
+          onPageChange: handlePagination.onPageChange,
+          onPageSizeChange: handlePagination.onPageSizeChange
+        }" @action="handleAction" />
       </TabsContent>
       <TabsContent value="preview">
         <Card>
@@ -39,8 +47,8 @@
                     </div>
                     <div class="flex items-center gap-2">
                       <code class="px-2 py-1 rounded bg-muted">
-                    {{ permission.code }}
-                  </code>
+                        {{ permission.code }}
+                      </code>
                       <Badge v-if="permission.isDeleted" variant="destructive">
                         已禁用
                       </Badge>
@@ -128,26 +136,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { PlusIcon } from 'lucide-vue-next'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
+import { useForm } from 'vee-validate'
 import type { Permission } from '~/prisma/generated/zod'
-import { toast } from '~/components/shadcn/toast/use-toast'
-import { createColumnHelper } from '@tanstack/vue-table'
+import { useToast } from '~/components/shadcn/toast/use-toast'
 import { columns } from '~/components/my/permissions/columns'
+import { usePermissionManagement } from '~/composables/usePermissionManagement'
+import { useConfirmDialog } from '~/composables/useConfirmDialog'
+import { useCreatePermission, useUpdatePermission } from '~/lib/hooks'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
 
-const columnHelper = createColumnHelper<Permission>()
+const { toast } = useToast()
+const { isOpen: isConfirmOpen, options, confirm, handleConfirm, handleCancel } = useConfirmDialog()
 
-// 状态管理
-const loading = ref(false)
-const saving = ref(false)
-const showDialog = ref(false)
-const editing = ref<Permission | null>(null)
-const permissions = ref<Permission[]>([])
-const total = ref(0)
-const activeTab = ref('list')
-const searchQuery = ref('')
+const {
+  currentPage,
+  total,
+  pageSize,
+  loading,
+  saving,
+  showDialog,
+  editing,
+  activeTab,
+  searchQuery,
+  permissions,
+  filteredPermissions,
+  permissionGroups,
+  togglePermission,
+  refetchPermissions,
+  handlePagination
+} = usePermissionManagement()
 
 // 表单 schema
 const formSchema = toTypedSchema(
@@ -160,82 +179,32 @@ const formSchema = toTypedSchema(
   })
 )
 
-// 表单
-const form = useForm({
-  validationSchema: formSchema,
-  initialValues: {
-    groupName: '',
-    groupCode: '',
-    actionName: '',
-    actionCode: '',
-    description: ''
-  }
-})
-
-// 计算属性：过滤后的权限列表
-const filteredPermissions = computed(() => {
-  if (!searchQuery.value) return permissions.value
-
-  const query = searchQuery.value.toLowerCase()
-  return permissions.value.filter(p =>
-    p.groupName.toLowerCase().includes(query) ||
-    p.groupCode.toLowerCase().includes(query) ||
-    p.actionName.toLowerCase().includes(query) ||
-    p.actionCode.toLowerCase().includes(query) ||
-    p.code.toLowerCase().includes(query) ||
-    (p.description && p.description.toLowerCase().includes(query))
-  )
-})
-
-// 计算属性：按分组组织的权限列表
-const permissionGroups = computed(() => {
-  const groups: Record<string, {
-    name: string
-    code: string
-    permissions: Permission[]
-  }> = {}
-
-  for (const permission of permissions.value) {
-    if (!groups[permission.groupCode]) {
-      groups[permission.groupCode] = {
-        name: permission.groupName,
-        code: permission.groupCode,
-        permissions: []
-      }
-    }
-    groups[permission.groupCode].permissions.push(permission)
-  }
-
-  return Object.values(groups)
-})
-
-// 获取权限列表
-const fetchPermissions = async () => {
-  try {
-    loading.value = true
-    const response = await $fetch('/api/admin/permissions')
-    permissions.value = response.items
-    total.value = response.total
-  } catch (error) {
-    console.error('获取权限列表失败:', error)
-    toast({ title: '获取权限列表失败' })
-  } finally {
-    loading.value = false
-  }
+type PermissionFormValues = {
+  groupName: string
+  groupCode: string
+  actionName: string
+  actionCode: string
+  description?: string
 }
+
+const form = useForm<PermissionFormValues>({
+  validationSchema: formSchema
+})
+
+const { mutateAsync: createPermission } = useCreatePermission()
+const { mutateAsync: updatePermission } = useUpdatePermission()
 
 // 处理表格操作
 const handleAction = async (action: string, permission?: Permission) => {
   switch (action) {
     case 'edit':
-      if (permission) {
-        openPermissionDialog(permission)
-      }
+      if (permission) openPermissionDialog(permission)
       break
     case 'toggle':
-      if (permission) {
-        await togglePermission(permission)
-      }
+      if (permission) await onDeletePermission(permission)
+      break
+    case 'add':
+      openPermissionDialog()
       break
   }
 }
@@ -257,67 +226,59 @@ const openPermissionDialog = (permission: Permission | null = null) => {
   showDialog.value = true
 }
 
-// 提交表单
-const onSubmit = async (e: Event) => {
-  e.preventDefault()
-  const valid = await form.validate()
-  if (!valid) return
-  const values = form.values
+// 保存权限
+const savePermission = async (values: PermissionFormValues) => {
   try {
     saving.value = true
+    const code = `${values.groupCode}.${values.actionCode}`
     const data = {
       ...values,
-      code: `${values.groupCode}.${values.actionCode}`
+      code
     }
 
     if (editing.value) {
-      await $fetch(`/api/admin/permissions/${editing.value.id}`, {
-        method: 'PUT',
-        body: data
+      await updatePermission({
+        where: { id: editing.value.id },
+        data
       })
-      toast({ title: '权限更新成功' })
     } else {
-      await $fetch('/api/admin/permissions', {
-        method: 'POST',
-        body: data
+      await createPermission({
+        data
       })
-      toast({ title: '权限创建成功' })
     }
 
+    await refetchPermissions()
     showDialog.value = false
-    await fetchPermissions()
+    toast({
+      title: '成功',
+      description: `权限已${editing.value ? '更新' : '创建'}`
+    })
   } catch (error) {
-    console.error('保存权限失败:', error)
-    toast({ title: '保存权限失败' })
+    toast({
+      title: '错误',
+      description: `${editing.value ? '更新' : '创建'}权限失败`,
+      variant: 'destructive'
+    })
   } finally {
     saving.value = false
   }
 }
-
-// 切换权限状态
-const togglePermission = async (permission: Permission) => {
-  const action = permission.isDeleted ? '启用' : '禁用'
-  const confirmed = await useConfirm({
-    title: `${action}权限`,
-    content: `确定要${action}权限"${permission.actionName}"吗？`
+const onDeletePermission = async (permission: Permission) => {
+  const confirmed = await confirm({
+    title: '确认操作',
+    content: `确定要${permission.isDeleted ? '启用' : '禁用'}权限 "${permission.actionName}" 吗？`,
+    confirmText: permission.isDeleted ? '启用' : '禁用',
+    cancelText: '取消',
+    variant: permission.isDeleted ? 'default' : 'destructive'
   })
-
-  if (!confirmed) return
-
-  try {
-    await $fetch(`/api/admin/permissions/${permission.id}/toggle`, {
-      method: 'POST'
-    })
-    await fetchPermissions()
-    toast({ title: `${action}权限成功` })
-  } catch (error) {
-    console.error(`${action}权限失败:`, error)
-    toast({ title: `${action}权限失败` })
+  if (confirmed) await togglePermission(permission)
+}
+// 提交表单
+const onSubmit = async (e: Event) => {
+  e.preventDefault()
+  const result = await form.validate()
+  if (result.valid) {
+    await savePermission(form.values)
   }
 }
-
-// 初始化
-onMounted(() => {
-  fetchPermissions()
-})
 </script>

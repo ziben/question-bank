@@ -10,13 +10,26 @@
         </p>
       </div>
     </div>
-    <MyNewDataTable :data="roles" :columns="columns" :filter_column="'name'" :pagination="{
+    <MyNewDataTable :data="roles || []" :columns="columns" :filter_column="'name'" :pagination="{
       page: currentPage,
       pageSize: pageSize,
-      total: total,
-      onPageChange,
-      onPageSizeChange
+      total: total || 0,
+      onPageChange: handlePagination.onPageChange,
+      onPageSizeChange: handlePagination.onPageSizeChange
     }" @action="handleAction" />
+
+    <!-- 确认删除对话框 -->
+    <ConfirmDialog
+      v-model:open="isConfirmOpen"
+      :title="options.title"
+      :content="options.content"
+      :confirm-text="options.confirmText"
+      :cancel-text="options.cancelText"
+      :variant="options.variant"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+    />
+
     <!-- 角色表单对话框 -->
     <Dialog :open="showRoleDialog" @update:open="showRoleDialog = $event">
       <DialogContent class="sm:max-w-[600px]">
@@ -149,29 +162,37 @@ import { ScrollArea } from '@/components/shadcn/scroll-area'
 import { Separator } from '@/components/shadcn/separator'
 import { useToast } from '@/components/shadcn/toast/use-toast'
 import { useConfirm } from '@/composables/useConfirm'
-import type { Permission, Role } from '@prisma/client'
+import type { Permission } from '@prisma/client'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
-import { computed, ref, watch, nextTick } from 'vue'
 import * as z from 'zod'
-
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
 import { columns } from '@/components/my/roles/columns'
 import { type RoleWithRelations } from '~/prisma/generated/zod'
-import {
-  useFindManyRole, useCreateRole,
-  useUpdateRole, useDeleteRole, useCountRole, useFindManyPermission
-} from '~/lib/hooks'
-
-// 状态管理
-const saving = ref(false)
-const savingPermissions = ref(false)
-const showRoleDialog = ref(false)
-const showPermissionDialog = ref(false)
-const editingRole = ref<RoleWithRelations | null>(null)
-const selectedPermissions = ref<Permission[]>([])
-const searchQuery = ref('')
+import { useRoleManagement } from '~/composables/useRoleManagement'
+import { useCreateRole, useUpdateRole, useDeleteRole } from '~/lib/hooks'
+import type { Row } from '@tanstack/vue-table'
 
 const { toast } = useToast()
+const { isOpen: isConfirmOpen, options, confirm, handleConfirm, handleCancel } = useConfirmDialog()
+
+const {
+  saving,
+  savingPermissions,
+  showRoleDialog,
+  showPermissionDialog,
+  editingRole,
+  selectedPermissions,
+  currentPage,
+  pageSize,
+  total,
+  roles,
+  permissionGroups,
+  isGroupSelected,
+  toggleGroupPermissions,
+  handlePagination,
+  refetchRoles
+} = useRoleManagement()
 
 // Role form schema
 const roleFormSchema = toTypedSchema(
@@ -193,197 +214,85 @@ const roleFormSchema = toTypedSchema(
 )
 
 type RoleFormValues = {
-  code: string;
-  name: string;
-  description?: string;
+  code: string
+  name: string
+  description?: string
 }
 
-const form = useForm({
+const form = useForm<RoleFormValues>({
   validationSchema: roleFormSchema,
-  initialValues: {
-    code: '',
-    name: '',
-    description: ''
-  }
 })
 
-const updateRole = useUpdateRole();
-const deleteRole = useDeleteRole();
-const createRole = useCreateRole();
+const { mutateAsync: createRole } = useCreateRole()
+const { mutateAsync: updateRole } = useUpdateRole()
+const { mutateAsync: deleteRole } = useDeleteRole()
 
-// 总数查询
-const { data: totalCount, refetch: refetchCount } = useCountRole()
-
-// 分页状态
-const currentPage = ref(1)
-const pageSize = ref(5)
-const total = computed(() => totalCount.value || 0)
-
-// 计算分页参数
-const queryArgs = computed(() => ({
-  include: { permissions: true, users: true },
-  skip: (currentPage.value - 1) * pageSize.value,
-  take: pageSize.value,
-  where: searchQuery.value ? {
-    OR: [
-      { name: { contains: searchQuery.value } },
-      { code: { contains: searchQuery.value } }
-    ]
-  } : undefined,
-  // orderBy: { createdAt: 'desc' }
-}))
-
-// 角色列表查询
-const { data: roles, isLoading: loading, refetch: refetchRoles } = useFindManyRole(queryArgs)
-
-// 监听分页参数变化
-watch([currentPage, pageSize, searchQuery], async () => {
-  try {
-    await Promise.all([
-      // refetchRoles(queryArgs.value),
-      refetchCount()
-    ])
-  } catch (error) {
-    console.error('获取角色列表失败:', error)
-    toast({
-      title: '错误',
-      description: '获取角色列表失败',
-      variant: 'destructive'
-    })
-  }
-})
-
-// 分页处理
-function onPageChange(page: number) {
-  currentPage.value = page
-}
-
-function onPageSizeChange(size: number) {
-  nextTick(() => {
-    pageSize.value = size
-    currentPage.value = 1
-  })
-}
-
-const { data: permissions, refetch: refetchPermissions } = useFindManyPermission();
-
-const handleAction = (action: string, ...args: any[]) => {
-  console.log(`当前[action]是: ${action}`);
-  // 确保 args 不为空且长度足够
-  const originalData = args.length > 0 && args[0]?.original;
-  if (action !== 'add' && !originalData) {
-    console.error('无效的参数:', args);
-    return;
-  }
-
+// 处理表格操作
+const handleAction = async (action: string, role?: Row<RoleWithRelations>) => {
   switch (action) {
     case 'edit':
-      openRoleDialog(originalData)
-      break;
-    case 'permissions':
-      openPermissionDialog(originalData)
-      break;
+      if (role) openRoleDialog(role.original)
+      break
     case 'delete':
-      onDeleteRole(args[0].original)
-      break;
+      if (role) await onDeleteRole(role.original)
+      break
+    case 'permissions':
+      if (role) openPermissionDialog(role.original)
+      break
     case 'add':
       openRoleDialog()
-      break;
-    default:
-      break;
+      break
   }
-
-  // openRoleDialog(row.original)
 }
 
 // 打开角色对话框
-function openRoleDialog(role: RoleWithRelations | null = null) {
+const openRoleDialog = (role: RoleWithRelations | null = null) => {
   editingRole.value = role
   if (role) {
-    form.resetForm({
-      values: {
-        code: role.code,
-        name: role.name,
-        description: role.description || ''
-      }
+    form.setValues({
+      code: role.code,
+      name: role.name,
+      description: role.description || ''
     })
   } else {
-    form.resetForm({
-      values: {
-        code: '',
-        name: '',
-        description: ''
-      }
-    })
+    form.resetForm()
   }
   showRoleDialog.value = true
 }
 
-// 按模块分组的权限列表
-const permissionGroups = computed(() => {
-  const groups: Record<string, Permission[]> = {}
-  permissions.value?.forEach(permission => {
-    const module = permission.groupCode
-    if (!groups[module]) {
-      groups[module] = []
-    }
-    groups[module].push(permission)
-  })
-  return groups
-})
-
-// 检查权限组是否全部选中
-function isGroupSelected(groupCode: string) {
-  const groupPermissions = permissionGroups.value[groupCode]
-  return groupPermissions.every(permission =>
-    selectedPermissions.value.includes(permission)
-  )
-}
-
-// 切换权限组的选中状态
-function toggleGroupPermissions(groupCode: string) {
-  const groupPermissions = permissionGroups.value[groupCode]
-  const allSelected = isGroupSelected(groupCode)
-
-  if (allSelected) {
-    selectedPermissions.value = selectedPermissions.value.filter(sp =>
-      !groupPermissions.some(p => p.code === sp.code)
-    )
-  } else {
-    const newPermissions = groupPermissions
-      .filter(p => !selectedPermissions.value.some(sp => sp.code === p.code))
-    selectedPermissions.value = [...selectedPermissions.value, ...newPermissions]
-  }
-}
-
 // 打开权限设置对话框
-async function openPermissionDialog(role: RoleWithRelations) {
+const openPermissionDialog = (role: RoleWithRelations) => {
   editingRole.value = role
-  await refetchPermissions()
-  // const rolePermissions = JSON.parse(role.permissions)
-  selectedPermissions.value = role.permissions
+  selectedPermissions.value = role.permissions || []
   showPermissionDialog.value = true
 }
 
 // 保存权限设置
-async function savePermissions() {
+const savePermissions = async () => {
   if (!editingRole.value) return
 
   try {
     savingPermissions.value = true
-    await updateRole.mutateAsync({
+    await updateRole({
       where: { id: editingRole.value.id },
-      data: { permissions: { connect: selectedPermissions.value } }
+      data: {
+        permissions: {
+          set: selectedPermissions.value.map(p => ({ id: p.id }))
+        }
+      }
     })
 
+    await refetchRoles()
     showPermissionDialog.value = false
-    toast({ title: '权限设置已更新' })
-  } catch (error) {
-    console.error('保存权限失败:', error)
     toast({
-      variant: 'destructive',
-      title: '保存失败',
-      description: error instanceof Error ? error.message : '保存权限失败'
+      title: '成功',
+      description: '权限设置已更新'
+    })
+  } catch (error) {
+    toast({
+      title: '错误',
+      description: '保存权限设置失败',
+      variant: 'destructive'
     })
   } finally {
     savingPermissions.value = false
@@ -391,67 +300,74 @@ async function savePermissions() {
 }
 
 // 删除角色
-async function onDeleteRole(role: Role) {
-  const confirmed = await useConfirm({
+const onDeleteRole = async (role: RoleWithRelations) => {
+  const confirmed = await confirm({
     title: '确认删除',
-    content: `确定要删除角色 "${role.name}" 吗？此操作不可恢复。`,
-    type: 'error',
-    confirmButton: {
-      text: '删除',
-      variant: 'destructive'
-    },
-    cancelButton: {
-      text: '取消'
-    }
+    content: `确定要删除角色 "${role.name}" 吗？此操作无法撤销。`,
+    confirmText: '删除',
+    cancelText: '取消',
+    variant: 'destructive'
   })
 
   if (!confirmed) return
 
   try {
-    await deleteRole.mutateAsync({ where: { id: role.id } });
-  } catch (err: any) {
-    console.error('删除角色失败:', err)
-    toast({ title: err instanceof Error ? err.message : '删除角色失败' })
+    await deleteRole({
+      where: { id: role.id }
+    })
 
-    alert(err.info?.message ?? err);
+    await refetchRoles()
+    toast({
+      title: '成功',
+      description: '角色已删除'
+    })
+  } catch (error) {
+    toast({
+      title: '错误',
+      description: '删除角色失败',
+      variant: 'destructive'
+    })
   }
+}
 
-  toast({ title: '角色删除成功' })
+// 保存角色
+const saveRole = async (values: RoleFormValues) => {
+  try {
+    saving.value = true
+    if (editingRole.value) {
+      await updateRole({
+        where: { id: editingRole.value.id },
+        data: values
+      })
+    } else {
+      await createRole({
+        data: values
+      })
+    }
+
+    await refetchRoles()
+    showRoleDialog.value = false
+    toast({
+      title: '成功',
+      description: `角色已${editingRole.value ? '更新' : '创建'}`
+    })
+  } catch (error) {
+    toast({
+      title: '错误',
+      description: `${editingRole.value ? '更新' : '创建'}角色失败`,
+      variant: 'destructive'
+    })
+  } finally {
+    saving.value = false
+  }
 }
 
 // 表单提交处理
 const onSubmit = async (e: Event) => {
   e.preventDefault()
-  const { valid } = await form.validate()
-  if (valid) {
-    await saveRole(form.values as RoleFormValues)
-  }
-}
-
-async function saveRole(values: RoleFormValues) {
-  try {
-    saving.value = true
-    if (editingRole.value) {
-      await updateRole.mutateAsync({
-        where: { id: editingRole.value.id },
-        data: values
-      })
-    } else {
-      await createRole.mutateAsync({
-        data: values
-      })
-    }
-
-    showRoleDialog.value = false
-  } catch (error) {
-    console.error('保存角色失败:', error)
-    toast({
-      variant: 'destructive',
-      title: '保存失败',
-      description: error instanceof Error ? error.message : '保存角色失败'
-    })
-  } finally {
-    saving.value = false
+  const result = await form.validate()
+  if (result.valid) {
+    await saveRole(form.values)
   }
 }
 </script>

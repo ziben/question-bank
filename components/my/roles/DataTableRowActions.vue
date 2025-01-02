@@ -34,7 +34,7 @@ const props = defineProps<DataTableRowActionsProps>()
       <DropdownMenuItem @click="$emit('action', 'edit', row)">编辑</DropdownMenuItem>
       <DropdownMenuItem @click="$emit('action', 'permissions', row)">权限</DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem @click="$emit('action', 'delete', row.original.id)">
+      <DropdownMenuItem @click="$emit('action', 'delete', row)">
         删除
         <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
       </DropdownMenuItem>
