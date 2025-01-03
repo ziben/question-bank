@@ -9,7 +9,7 @@ export default defineNuxtConfig({
 
   // 模块配置
   modules: [// 'vuetify-nuxt-module',
-    '@nuxtjs/tailwindcss', '@pinia/nuxt', 'shadcn-nuxt', '@nuxtjs/google-fonts', '@nuxtjs/color-mode', '@nuxt/icon', '@vueuse/nuxt', 'nuxt-lodash', '@formkit/auto-animate/nuxt', '@vee-validate/nuxt', 'dayjs-nuxt', '@sidebase/nuxt-auth'],
+    '@nuxtjs/tailwindcss', '@pinia/nuxt', 'shadcn-nuxt', '@nuxtjs/google-fonts', '@nuxtjs/color-mode', '@nuxt/icon', '@vueuse/nuxt', 'nuxt-lodash', '@formkit/auto-animate/nuxt', '@vee-validate/nuxt', 'dayjs-nuxt'],
   // Shadcn UI 配置
   shadcn: {
     prefix: '',

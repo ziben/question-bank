@@ -9,8 +9,6 @@
 
 <script setup lang="ts">
 import { useToast } from '@/components/shadcn/toast/use-toast'
-import { useAppStore } from '@/stores/app'
-import { storeToRefs } from 'pinia'
 import { provideHooksContext } from './lib/hooks'
 
 // 全局 toast 实例
