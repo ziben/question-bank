@@ -160,16 +160,6 @@ const navigationItems: NavigationItem[] = [
     icon: 'lucide:align-vertical-distribute-center'
   },
   {
-    name: '来源管理',
-    path: '/admin/sources',
-    icon: 'lucide:soup'
-  },
-  {
-    name: '来源管理(new)',
-    path: '/admin/sources/new',
-    icon: 'lucide:soup'
-  },
-  {
     name: '分类管理',
     path: '/categories',
     icon: 'lucide:group'
@@ -201,6 +191,11 @@ const adminItems: NavigationItem[] = [
     name: '标签管理',
     path: '/admin/tags',
     icon: 'lucide:activity'
+  },
+  {
+    name: '操作日志',
+    path: '/admin/logs',
+    icon: 'lucide:logs'
   },
   {
     name: '日志管理',
