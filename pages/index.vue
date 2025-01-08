@@ -19,7 +19,7 @@
           <NuxtLink to="/questions"
             class="inline-flex items-center text-primary hover:text-primary/80 transition-colors">
             进入题库
-            <ChevronRight class="ml-1 h-4 w-4" />
+            <Icon name="material-symbols:category-outline-rounded" class="ml-1 h-4 w-4" />
           </NuxtLink>
         </CardFooter>
       </Card>
@@ -35,7 +35,7 @@
           <NuxtLink to="/categories"
             class="inline-flex items-center text-primary hover:text-primary/80 transition-colors">
             管理分类
-            <ChevronRight class="ml-1 h-4 w-4" />
+            <Icon name="material-symbols:category-outline-rounded" class="ml-1 h-4 w-4" />
           </NuxtLink>
         </CardFooter>
       </Card>
@@ -51,7 +51,7 @@
           <NuxtLink to="/statistics"
             class="inline-flex items-center text-primary hover:text-primary/80 transition-colors">
             查看统计
-            <Icon name="material-symbols:bar-chart-outline-rounded" class="ml-1 h-4 w-4" />
+            <Icon name="material-symbols:category-outline-rounded" class="ml-1 h-4 w-4" />
           </NuxtLink>
         </CardFooter>
       </Card>

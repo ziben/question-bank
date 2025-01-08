@@ -58,19 +58,7 @@ export default defineEventHandler(async (event) => {
   const userWithRoles = await prisma.user.findUnique({
     where: { id: user.id },
     include: {
-      roles: {
-        include: {
-          role: {
-            include: {
-              permissions: {
-                include: {
-                  permission: true
-                }
-              }
-            }
-          }
-        }
-      }
+      roles: true
     }
   })
 
@@ -89,12 +77,8 @@ export default defineEventHandler(async (event) => {
     createdAt: userWithRoles.createdAt,
     updatedAt: userWithRoles.updatedAt,
     roles: userWithRoles.roles.map(ur => ({
-      id: ur.role.id,
-      name: ur.role.name,
-      permissions: ur.role.permissions.map(p => ({
-        id: p.permission.id,
-        name: p.permission.name
-      }))
+      id: ur.id,
+      name: ur.name
     }))
   }
 })

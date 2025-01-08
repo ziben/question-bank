@@ -116,7 +116,7 @@ export class Logger {
           }
         },
         orderBy: {
-          timestamp: 'desc'
+          createdAt: 'desc'
         },
         skip: (page - 1) * pageSize,
         take: pageSize
@@ -186,13 +186,6 @@ export class Logger {
         _count: true
       })
 
-      // 获取等级统计
-      const levelStats = await prisma.systemLog.groupBy({
-        by: ['level'],
-        where,
-        _count: true
-      })
-
       // 获取时间序列数据
       const timeSeriesData = await this.getTimeSeriesStats({
         where,
@@ -207,7 +200,6 @@ export class Logger {
         details: {
           moduleStats: Object.fromEntries(moduleStats.map(item => [item.module, item._count])),
           actionStats: Object.fromEntries(actionStats.map(item => [item.action, item._count])),
-          levelStats: Object.fromEntries(levelStats.map(item => [item.level, item._count])),
           timeSeriesData
         }
       }
@@ -278,7 +270,7 @@ export class Logger {
           }
         },
         orderBy: {
-          timestamp: 'desc'
+          createdAt: 'desc'
         }
       })
 

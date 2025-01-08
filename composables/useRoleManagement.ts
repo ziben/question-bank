@@ -11,6 +11,7 @@ import {
   useCountRole,
   useFindManyPermission
 } from '~/lib/hooks'
+import { keepPreviousData } from '@tanstack/vue-query'
 
 export const useRoleManagement = () => {
   const { toast } = useToast()
@@ -26,15 +27,15 @@ export const useRoleManagement = () => {
   const pageSize = ref(10)
 
   // 数据查询
-  const qureyOptions = computed(() => ({
+  const qureyArgs = computed(() => ({
     include: {
       permissions: true
     },
     skip: (currentPage.value - 1) * pageSize.value,
-    take: pageSize.value
+    take: pageSize.value,
   }))
 
-  const { data: roles, refetch: refetchRoles } = useFindManyRole(qureyOptions)
+  const { data: roles, refetch: refetchRoles } = useFindManyRole(qureyArgs, { placeholderData: keepPreviousData })
 
   const { data: total } = useCountRole()
   const { data: permissions } = useFindManyPermission()

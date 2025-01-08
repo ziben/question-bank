@@ -13506,6 +13506,11 @@ export const UserUpdateManyArgsSchema: z.ZodType<Prisma.UserUpdateManyArgs> = z.
   where: UserWhereInputSchema.optional(),
 }).strict() ;
 
+export const updateManyUserCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManyUserCreateManyAndReturnArgs> = z.object({
+  data: z.union([ UserUpdateManyMutationInputSchema,UserUncheckedUpdateManyInputSchema ]),
+  where: UserWhereInputSchema.optional(),
+}).strict() ;
+
 export const UserDeleteManyArgsSchema: z.ZodType<Prisma.UserDeleteManyArgs> = z.object({
   where: UserWhereInputSchema.optional(),
 }).strict() ;
@@ -13546,6 +13551,11 @@ export const RoleUpdateArgsSchema: z.ZodType<Prisma.RoleUpdateArgs> = z.object({
 }).strict() ;
 
 export const RoleUpdateManyArgsSchema: z.ZodType<Prisma.RoleUpdateManyArgs> = z.object({
+  data: z.union([ RoleUpdateManyMutationInputSchema,RoleUncheckedUpdateManyInputSchema ]),
+  where: RoleWhereInputSchema.optional(),
+}).strict() ;
+
+export const updateManyRoleCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManyRoleCreateManyAndReturnArgs> = z.object({
   data: z.union([ RoleUpdateManyMutationInputSchema,RoleUncheckedUpdateManyInputSchema ]),
   where: RoleWhereInputSchema.optional(),
 }).strict() ;
@@ -13594,6 +13604,11 @@ export const PermissionUpdateManyArgsSchema: z.ZodType<Prisma.PermissionUpdateMa
   where: PermissionWhereInputSchema.optional(),
 }).strict() ;
 
+export const updateManyPermissionCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManyPermissionCreateManyAndReturnArgs> = z.object({
+  data: z.union([ PermissionUpdateManyMutationInputSchema,PermissionUncheckedUpdateManyInputSchema ]),
+  where: PermissionWhereInputSchema.optional(),
+}).strict() ;
+
 export const PermissionDeleteManyArgsSchema: z.ZodType<Prisma.PermissionDeleteManyArgs> = z.object({
   where: PermissionWhereInputSchema.optional(),
 }).strict() ;
@@ -13634,6 +13649,11 @@ export const CategoryUpdateArgsSchema: z.ZodType<Prisma.CategoryUpdateArgs> = z.
 }).strict() ;
 
 export const CategoryUpdateManyArgsSchema: z.ZodType<Prisma.CategoryUpdateManyArgs> = z.object({
+  data: z.union([ CategoryUpdateManyMutationInputSchema,CategoryUncheckedUpdateManyInputSchema ]),
+  where: CategoryWhereInputSchema.optional(),
+}).strict() ;
+
+export const updateManyCategoryCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManyCategoryCreateManyAndReturnArgs> = z.object({
   data: z.union([ CategoryUpdateManyMutationInputSchema,CategoryUncheckedUpdateManyInputSchema ]),
   where: CategoryWhereInputSchema.optional(),
 }).strict() ;
@@ -13682,6 +13702,11 @@ export const SubjectUpdateManyArgsSchema: z.ZodType<Prisma.SubjectUpdateManyArgs
   where: SubjectWhereInputSchema.optional(),
 }).strict() ;
 
+export const updateManySubjectCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManySubjectCreateManyAndReturnArgs> = z.object({
+  data: z.union([ SubjectUpdateManyMutationInputSchema,SubjectUncheckedUpdateManyInputSchema ]),
+  where: SubjectWhereInputSchema.optional(),
+}).strict() ;
+
 export const SubjectDeleteManyArgsSchema: z.ZodType<Prisma.SubjectDeleteManyArgs> = z.object({
   where: SubjectWhereInputSchema.optional(),
 }).strict() ;
@@ -13722,6 +13747,11 @@ export const GradeUpdateArgsSchema: z.ZodType<Prisma.GradeUpdateArgs> = z.object
 }).strict() ;
 
 export const GradeUpdateManyArgsSchema: z.ZodType<Prisma.GradeUpdateManyArgs> = z.object({
+  data: z.union([ GradeUpdateManyMutationInputSchema,GradeUncheckedUpdateManyInputSchema ]),
+  where: GradeWhereInputSchema.optional(),
+}).strict() ;
+
+export const updateManyGradeCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManyGradeCreateManyAndReturnArgs> = z.object({
   data: z.union([ GradeUpdateManyMutationInputSchema,GradeUncheckedUpdateManyInputSchema ]),
   where: GradeWhereInputSchema.optional(),
 }).strict() ;
@@ -13770,6 +13800,11 @@ export const SourceUpdateManyArgsSchema: z.ZodType<Prisma.SourceUpdateManyArgs> 
   where: SourceWhereInputSchema.optional(),
 }).strict() ;
 
+export const updateManySourceCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManySourceCreateManyAndReturnArgs> = z.object({
+  data: z.union([ SourceUpdateManyMutationInputSchema,SourceUncheckedUpdateManyInputSchema ]),
+  where: SourceWhereInputSchema.optional(),
+}).strict() ;
+
 export const SourceDeleteManyArgsSchema: z.ZodType<Prisma.SourceDeleteManyArgs> = z.object({
   where: SourceWhereInputSchema.optional(),
 }).strict() ;
@@ -13810,6 +13845,11 @@ export const TagCategoryUpdateArgsSchema: z.ZodType<Prisma.TagCategoryUpdateArgs
 }).strict() ;
 
 export const TagCategoryUpdateManyArgsSchema: z.ZodType<Prisma.TagCategoryUpdateManyArgs> = z.object({
+  data: z.union([ TagCategoryUpdateManyMutationInputSchema,TagCategoryUncheckedUpdateManyInputSchema ]),
+  where: TagCategoryWhereInputSchema.optional(),
+}).strict() ;
+
+export const updateManyTagCategoryCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManyTagCategoryCreateManyAndReturnArgs> = z.object({
   data: z.union([ TagCategoryUpdateManyMutationInputSchema,TagCategoryUncheckedUpdateManyInputSchema ]),
   where: TagCategoryWhereInputSchema.optional(),
 }).strict() ;
@@ -13858,6 +13898,11 @@ export const TagUpdateManyArgsSchema: z.ZodType<Prisma.TagUpdateManyArgs> = z.ob
   where: TagWhereInputSchema.optional(),
 }).strict() ;
 
+export const updateManyTagCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManyTagCreateManyAndReturnArgs> = z.object({
+  data: z.union([ TagUpdateManyMutationInputSchema,TagUncheckedUpdateManyInputSchema ]),
+  where: TagWhereInputSchema.optional(),
+}).strict() ;
+
 export const TagDeleteManyArgsSchema: z.ZodType<Prisma.TagDeleteManyArgs> = z.object({
   where: TagWhereInputSchema.optional(),
 }).strict() ;
@@ -13902,6 +13947,11 @@ export const QuestionUpdateManyArgsSchema: z.ZodType<Prisma.QuestionUpdateManyAr
   where: QuestionWhereInputSchema.optional(),
 }).strict() ;
 
+export const updateManyQuestionCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManyQuestionCreateManyAndReturnArgs> = z.object({
+  data: z.union([ QuestionUpdateManyMutationInputSchema,QuestionUncheckedUpdateManyInputSchema ]),
+  where: QuestionWhereInputSchema.optional(),
+}).strict() ;
+
 export const QuestionDeleteManyArgsSchema: z.ZodType<Prisma.QuestionDeleteManyArgs> = z.object({
   where: QuestionWhereInputSchema.optional(),
 }).strict() ;
@@ -13942,6 +13992,11 @@ export const SystemLogUpdateArgsSchema: z.ZodType<Prisma.SystemLogUpdateArgs> = 
 }).strict() ;
 
 export const SystemLogUpdateManyArgsSchema: z.ZodType<Prisma.SystemLogUpdateManyArgs> = z.object({
+  data: z.union([ SystemLogUpdateManyMutationInputSchema,SystemLogUncheckedUpdateManyInputSchema ]),
+  where: SystemLogWhereInputSchema.optional(),
+}).strict() ;
+
+export const updateManySystemLogCreateManyAndReturnArgsSchema: z.ZodType<Prisma.updateManySystemLogCreateManyAndReturnArgs> = z.object({
   data: z.union([ SystemLogUpdateManyMutationInputSchema,SystemLogUncheckedUpdateManyInputSchema ]),
   where: SystemLogWhereInputSchema.optional(),
 }).strict() ;

@@ -31,7 +31,7 @@ import DataTableToolbar from './DataTableToolbar.vue'
 
 interface DataTableProps<T> {
   columns: ColumnDef<T, any>[]
-  data: readonly T[]
+  data: T[]
   toolbar?: any
   filter_column?: string | 'title'
   pagination?: {
@@ -113,7 +113,7 @@ const table = useVueTable({
     <DataTableToolbar v-if="!toolbar" :table="table" :filter_column="filter_column"
       @action="(...args) => $emit('action', ...args)" />
     <div class="rounded-md border">
-      <Table>
+      <Table class="[&_td]:border [&_th]:border border-collapse">
         <TableHeader>
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
             <TableHead v-for="header in headerGroup.headers" :key="header.id">
