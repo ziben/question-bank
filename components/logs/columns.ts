@@ -1,48 +1,33 @@
-import type { SystemLog } from "@prisma/client";
+import { type User, type SystemLog } from "@prisma/client";
 import type { ColumnDef, Row } from "@tanstack/vue-table";
-
+import type { SystemLogWithRelations } from "~/prisma/generated/zod";
+import DataTableRowActions from "./DataTableRowActions.vue";
 const dayjs = useDayjs()
 
-export const columns: ColumnDef<SystemLog>[] = [
+export const columns: ColumnDef<SystemLogWithRelations>[] = [
   {
     accessorKey: "createdAt",
-    header: "时间",
-    cell: ({ row }) => h("div", { class: "w-50" }, dayjs(row.getValue("createdAt")).format("YYYY-MM-DD HH:mm:ss")),
+    header: () => h("div", { class: "text-center" }, "时间"),
+    cell: ({ row }) => h("div", { class: "w-22" }, dayjs(row.getValue("createdAt")).format("YYYY-MM-DD HH:mm:ss")),
   },
   {
     accessorKey: "module",
-    header: "模块",
-    cell: ({ row }) => h("div", { class: "w-50" }, row.getValue("module")),
+    header: () => h("div", { class: "text-center" }, "模块"),
+    cell: ({ row }) => h("div", { class: "w-30" }, row.getValue("module")),
   },
   {
     accessorKey: "action",
-    header: "操作",
+    header: () => h("div", { class: "text-center" }, "操作"),
     cell: ({ row }) => h("div", { class: "w-50" }, row.getValue("action")),
   },
   {
-    accessorKey: "userId",
-    header: "用户",
-    cell: ({ row }) => h("div", { class: "w-5" }, ''),
-  },
-  {
-    accessorKey: "detail",
-    header: "详情",
-    cell: ({ row }) => {
-      const details =
-        typeof row.getValue("detail") === "string"
-          ? JSON.parse(row.getValue("detail"))
-          : row.getValue("detail");
-      return h("div", { class: "max-w-[500px] truncate" }, details);
-    },
+    accessorKey: "user",
+    header: () => h("div", { class: "text-center" }, "用户"),
+    cell: ({ row }) => h("div", { class: "w-50" }, row.getValue<User>("user").name ?? ''),
   },
   {
     id: "actions",
-    cell: ({ row }) =>
-      h(
-        "Button",
-        { class: "w-25", variant: "ghost", size: "sm" },
-        "查看详情"
-      ),
+    header: () => h("div", { class: "text-center" }, "操作"),
+    cell: ({ row }) => h(DataTableRowActions, { row }),
   },
 ];
-

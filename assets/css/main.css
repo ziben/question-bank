@@ -1,4 +1,5 @@
 @import './fonts.css';
+@import 'v-calendar/style.css';
 
 @tailwind base;
 @tailwind components;

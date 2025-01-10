@@ -8,7 +8,7 @@ import {
   useDeletePermission
 } from '~/lib/hooks'
 import { useToast } from '@/components/shadcn/toast/use-toast'
-import { QUERY_OPTIONS, SORT_ORDER, type QueryOptions } from '~/types/query'
+import { QUERY_OPTIONS, queryOptions, SORT_ORDER, type QueryOptions } from '~/types/query'
 
 export const usePermissionManagement = () => {
   const { toast } = useToast()
@@ -34,7 +34,7 @@ export const usePermissionManagement = () => {
 
   // 数据查询
   const { data: allPermissions } = useFindManyPermission({ orderBy: queryArgs.value.orderBy })
-  const { data: permissions, refetch: refetchPermissions } = useFindManyPermission(queryArgs)
+  const { data: permissions, refetch: refetchPermissions } = useFindManyPermission(queryArgs, queryOptions)
   const { data: total } = useCountPermission()
 
   // 计算属性：过滤后的权限列表
@@ -53,8 +53,8 @@ export const usePermissionManagement = () => {
   })
 
   // 计算属性：按分组组织的权限列表
-  const permissionGroups = computed(() => {
-    if (!permissions.value) return []
+  const allPermissionGroups = computed(() => {
+    if (!allPermissions.value) return []
 
     const groups: Record<string, {
       name: string
@@ -62,7 +62,7 @@ export const usePermissionManagement = () => {
       permissions: Permission[]
     }> = {}
 
-    for (const permission of permissions.value) {
+    for (const permission of allPermissions.value) {
       if (!groups[permission.groupCode]) {
         groups[permission.groupCode] = {
           name: permission.groupName,
@@ -186,8 +186,8 @@ export const usePermissionManagement = () => {
     pageSize,
     total,
     allPermissions,
-    permissions: filteredPermissions,
-    permissionGroups,
+    filteredPermissions,
+    allPermissionGroups,
 
     // 方法
     handlePagination,

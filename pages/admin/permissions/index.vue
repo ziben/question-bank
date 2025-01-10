@@ -31,7 +31,7 @@
           </CardHeader>
           <CardContent>
             <div class="space-y-6">
-              <div v-for="group in permissionGroups" :key="group.code" class="space-y-4">
+              <div v-for="group in allPermissionGroups" :key="group.code" class="space-y-4">
                 <div class="flex items-center justify-between">
                   <h3 class="text-lg font-semibold">{{ group.name }}</h3>
                   <Badge variant="secondary">{{ group.code }}</Badge>
@@ -160,9 +160,9 @@ const {
   editing,
   activeTab,
   searchQuery,
-  permissions,
+  allPermissions,
   filteredPermissions,
-  permissionGroups,
+  allPermissionGroups,
   togglePermission,
   refetchPermissions,
   handlePagination

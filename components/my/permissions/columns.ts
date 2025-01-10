@@ -6,6 +6,7 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import { h } from 'vue'
 import type { Permission } from '~/prisma/generated/zod'
 import DataTableRowActions from './DataTableRowActions.vue'
+
 export const columns: ColumnDef<Permission>[] = [
   {
     id: 'select',

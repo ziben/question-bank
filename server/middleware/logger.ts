@@ -37,7 +37,19 @@ const getLogAction = (method: string, path: string): LogAction => {
 export default defineEventHandler(async (event) => {
   const start = performance.now()
   const { method, url } = event.node.req
-  const ip = getRequestIP(event)
+  
+  // 获取客户端 IP 的多种方式
+  const forwardedFor = getRequestHeader(event, 'x-forwarded-for')
+  const realIP = getRequestHeader(event, 'x-real-ip')
+  const directIP = getRequestIP(event)
+  
+  // 按优先级获取 IP
+  const ip = forwardedFor?.split(',')[0]?.trim() || 
+             realIP || 
+             (typeof directIP === 'string' ? directIP : directIP?.[0]) ||
+             event.node.req.socket?.remoteAddress ||
+             'unknown'
+
   const userAgent = getRequestHeader(event, 'user-agent')
 
   try {
@@ -68,7 +80,7 @@ export default defineEventHandler(async (event) => {
         duration: performance.now() - start,
         timestamp: new Date().toISOString()
       },
-      ip: typeof ip === 'string' ? ip : ip?.[0],
+      ip,
       userAgent
     })
   } catch (error) {

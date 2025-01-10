@@ -1,6 +1,6 @@
 <!-- 日志过滤器组件 -->
 <template>
-  <div class="space-y-4">
+  <div>
     <Card>
       <CardHeader class="p-4 flex flex-row items-center justify-between space-y-0">
         <CardTitle class="text-base">
@@ -19,66 +19,99 @@
 
       <Collapsible :open="isExpanded">
         <CollapsibleContent>
-          <CardContent class="p-4 pt-0">
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <!-- 日期范围选择 -->
-              <div class="space-y-2 md:col-span-2">
-                <Label>时间范围</Label>
-                <DateRangeSelect v-model="dateRange" />
-              </div>
-
-              <!-- 搜索框 -->
-              <div class="space-y-2">
-                <Label>搜索</Label>
-                <Input v-model="filters.search" placeholder="搜索日志内容..." />
-              </div>
-
+          <CardContent class="p-4 pt-1">
+            <div class="grid gap-4 md:grid-cols-2">
               <!-- 模块选择 -->
-              <div class="space-y-2">
-                <Label>模块</Label>
-                <Select v-model="filters.module">
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择模块" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">全部</SelectItem>
-                    <SelectItem v-for="option in moduleOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              <div class="flex items-center gap-2">
+                <Label class="min-w-16 shrink-0">模块</Label>
+                <div class="flex-1 flex items-center gap-1">
+                  <Select v-model="filters.module">
+                    <SelectTrigger class="w-full border-input">
+                      <SelectValue placeholder="选择模块" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="option in moduleOptions" :key="option.value" :value="option.value">
+                        {{ option.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    v-if="filters.module"
+                    variant="ghost"
+                    size="icon"
+                    class="flex-shrink-0 h-8 w-8 hover:bg-accent hover:text-accent-foreground"
+                    @click="clearFilter('module')"
+                    @mousedown.prevent
+                  >
+                    <Icon name="material-symbols:close" class="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               <!-- 操作类型选择 -->
-              <div class="space-y-2">
-                <Label>操作类型</Label>
-                <Select v-model="filters.action">
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择操作类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">全部</SelectItem>
-                    <SelectItem v-for="option in actionOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              <div class="flex items-center gap-2">
+                <Label class="min-w-16 shrink-0">操作类型</Label>
+                <div class="flex-1 flex items-center gap-1">
+                  <Select v-model="filters.action">
+                    <SelectTrigger class="w-full border-input">
+                      <SelectValue placeholder="选择操作类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="option in actionOptions" :key="option.value" :value="option.value">
+                        {{ option.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    v-if="filters.action"
+                    variant="ghost"
+                    size="icon"
+                    class="flex-shrink-0 h-8 w-8 hover:bg-accent hover:text-accent-foreground"
+                    @click="clearFilter('action')"
+                    @mousedown.prevent
+                  >
+                    <Icon name="material-symbols:close" class="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               <!-- 用户选择 -->
-              <div class="space-y-2">
-                <Label>操作用户</Label>
-                <Select v-model="filters.userId">
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择用户" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">全部</SelectItem>
-                    <SelectItem v-for="user in userOptions" :key="user.id" :value="user.id">
-                      {{ user.username }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              <div class="flex items-center gap-2">
+                <Label class="min-w-16 shrink-0">操作用户</Label>
+                <div class="flex-1 flex items-center gap-1">
+                  <Select v-model="filters.userId">
+                    <SelectTrigger class="w-full border-input">
+                      <SelectValue placeholder="选择用户" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="user in userOptions" :key="user.id" :value="user.id">
+                        {{ user.username }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    v-if="filters.userId"
+                    variant="ghost"
+                    size="icon"
+                    class="flex-shrink-0 h-8 w-8 hover:bg-accent hover:text-accent-foreground"
+                    @click="clearFilter('userId')"
+                    @mousedown.prevent
+                  >
+                    <Icon name="material-symbols:close" class="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <!-- 日期范围选择 -->
+              <div class="flex items-center gap-2">
+                <Label class="min-w-16 shrink-0">时间范围</Label>
+                <DateRangeSelect v-model="dateRange" class="flex-1" />
+              </div>
+
+              <!-- 搜索框 -->
+              <div class="flex items-center gap-2 md:col-span-2">
+                <Label class="min-w-16 shrink-0">搜索</Label>
+                <Input v-model="filters.search" placeholder="搜索日志内容..." class="flex-1" />
               </div>
             </div>
 
@@ -130,7 +163,7 @@ const emit = defineEmits<{
 const filters = useVModel(props, 'filters', emit)
 
 // 展开状态
-const isExpanded = ref(true)
+const isExpanded = ref(false)
 
 // 日期范围 - 添加类型安全和空值检查
 const dateRange = computed<DateRange>({
@@ -159,14 +192,14 @@ const dateRange = computed<DateRange>({
 const moduleOptions = shallowRef(
   Object.entries(LOG_MODULES).map(([value, config]) => ({
     label: config.name,
-    value
+    value: config.name
   }))
 )
 
 const actionOptions = shallowRef(
   Object.entries(LOG_ACTIONS).map(([value, config]) => ({
     label: config.name,
-    value
+    value: config.name
   }))
 )
 
@@ -193,7 +226,6 @@ const hasActiveFilters = computed(() => {
     f.search ||
     f.module ||
     f.action ||
-    f.level ||
     f.userId
   )
 })
@@ -205,7 +237,6 @@ const activeFilterCount = computed(() => {
   if (f.search) count++
   if (f.module) count++
   if (f.action) count++
-  if (f.level) count++
   if (f.userId) count++
   return count
 })
@@ -228,13 +259,35 @@ const applyFilters = () => {
 // 重置过滤器
 const resetFilters = () => {
   filters.value = {
-    startDate: null,
-    endDate: null,
+    startDate: undefined,
+    endDate: undefined,
     search: '',
-    module: '',
-    action: '',
-    level: '',
-    userId: ''
+    module: undefined,
+    action: undefined,
+    userId: undefined
   }
+}
+
+// 获取模块标签
+const getModuleLabel = (module: string) => {
+  const option = moduleOptions.value.find(option => option.value === module)
+  return option ? option.label : ''
+}
+
+// 获取操作类型标签
+const getActionLabel = (action: string) => {
+  const option = actionOptions.value.find(option => option.value === action)
+  return option ? option.label : ''
+}
+
+// 获取用户标签
+const getUserLabel = (userId: string) => {
+  const user = userOptions.value.find(user => user.id === userId)
+  return user ? user.username : ''
+}
+
+// 清除过滤器
+const clearFilter = (key: keyof LogFilter) => {
+  filters.value[key] = undefined
 }
 </script>

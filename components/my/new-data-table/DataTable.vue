@@ -109,9 +109,9 @@ const table = useVueTable({
 
 <template>
   <div class="space-y-4">
-    <Component :is="toolbar" :table="table" />
+    <Component :is="toolbar" :table="table" @action="(...args: any[]) => $emit('action', ...args)"/>
     <DataTableToolbar v-if="!toolbar" :table="table" :filter_column="filter_column"
-      @action="(...args) => $emit('action', ...args)" />
+      @action="(...args: any[]) => $emit('action', ...args)" />
     <div class="rounded-md border">
       <Table class="[&_td]:border [&_th]:border border-collapse">
         <TableHeader>
@@ -128,7 +128,7 @@ const table = useVueTable({
               :data-state="row.getIsSelected() && 'selected'">
               <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id">
                 <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()"
-                  @action="(...args) => $emit('action', ...args)" />
+                  @action="(...args: any[]) => $emit('action', ...args)" />
               </TableCell>
             </TableRow>
           </template>

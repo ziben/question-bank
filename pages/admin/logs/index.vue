@@ -7,7 +7,7 @@
         <p class="text-muted-foreground">查看和管理系统操作日志，追踪用户行为和系统变更</p>
       </div>
       <Button variant="outline" @click="handleExport" :loading="exporting">
-        <Icon name="download" class="mr-2 h-4 w-4" />
+        <Icon name="material-symbols:download" class="mr-2 h-4 w-4" />
         {{ exporting ? "导出中..." : "导出日志" }}
       </Button>
     </div>
@@ -16,60 +16,68 @@
     <LogsLogFilter v-model:filters="filters" @update:filters="handleFilterChange" />
 
     <!-- 日志列表 -->
-    <MyNewDataTable :toolbar="true" :data="logs || []" :columns="columns" :filter_column="'content'" :pagination="{
-      page: currentPage,
-      pageSize: pageSize,
-      total: total || 0,
-      onPageChange: handlePageChange,
-      onPageSizeChange: handlePageSizeChange,
-    }" @action="handleAction" />
+    <MyNewDataTable 
+      :toolbar="'test'" 
+      :data="logs || []" 
+      :columns="columns" 
+      :filter_column="'detail'" 
+      class="mt-2"
+      :pagination="{
+        page: currentPage,
+        pageSize: pageSize,
+        total: total || 0,
+        onPageChange: handlePageChange,
+        onPageSizeChange: handlePageSizeChange,
+      }" 
+      @action="handleAction" 
+    />
 
     <!-- 日志详情对话框 -->
-    <Dialog :open="showDialog" @update:open="showDialog = $event">
-      <DialogContent class="sm:max-w-[800px]">
+    <Dialog :open="showDetailDialog" @update:open="showDetailDialog = $event">
+      <DialogContent class="max-w-[800px]">
         <DialogHeader>
           <DialogTitle>日志详情</DialogTitle>
-          <DialogDescription> 查看日志的详细信息，包括操作内容、请求参数和响应结果 </DialogDescription>
+          <DialogDescription>
+            {{ $dayjs(selectedLog?.createdAt).format('YYYY-MM-DD HH:mm:ss') }}
+          </DialogDescription>
         </DialogHeader>
-
-        <div v-if="selectedLog" class="space-y-6">
+        <div class="grid gap-6 py-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
               <Label class="text-sm font-medium text-muted-foreground">模块</Label>
-              <div class="mt-1">{{ selectedLog.module }}</div>
+              <div class="mt-1">{{ selectedLog?.module }}</div>
             </div>
             <div>
               <Label class="text-sm font-medium text-muted-foreground">操作</Label>
-              <div class="mt-1">{{ selectedLog.action }}</div>
-            </div>
-            <div>
-              <Label class="text-sm font-medium text-muted-foreground">时间</Label>
-              <div class="mt-1">{{ selectedLog.createdAt }}</div>
+              <div class="mt-1">{{ selectedLog?.action }}</div>
             </div>
             <div>
               <Label class="text-sm font-medium text-muted-foreground">用户</Label>
-              <div class="mt-1">{{ selectedLog.userId }}</div>
+              <div class="mt-1">{{ selectedLog?.user?.name }}</div>
             </div>
             <div>
               <Label class="text-sm font-medium text-muted-foreground">IP</Label>
-              <div class="mt-1">{{ selectedLog.ip }}</div>
+              <div class="mt-1">{{ selectedLog?.ip }}</div>
             </div>
+          </div>
+          
+          <div>
             <div>
               <Label class="text-sm font-medium text-muted-foreground">User Agent</Label>
-              <div class="mt-1 truncate">{{ selectedLog.userAgent }}</div>
+              <div class="mt-1 break-words whitespace-pre-wrap">{{ selectedLog?.userAgent }}</div>
             </div>
           </div>
 
           <div>
             <Label class="text-sm font-medium text-muted-foreground">详细信息</Label>
             <ScrollArea class="mt-2 h-[300px]">
-              <pre class="p-4 rounded-lg bg-muted text-sm">{{ JSON.stringify(selectedLog.detail, null, 2) }}</pre>
+              <pre class="p-4 rounded-lg bg-muted text-sm break-all whitespace-pre-wrap overflow-x-hidden">{{ formattedDetail }}</pre>
             </ScrollArea>
           </div>
         </div>
 
         <DialogFooter>
-          <Button @click="showDialog = false">关闭</Button>
+          <Button @click="showDetailDialog = false">关闭</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -77,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import type { SystemLog } from "@prisma/client";
 import type { LogFilter } from "~/types/filters";
 import { DEFAULT_LOG_FILTER } from "~/types/filters";
@@ -121,11 +129,6 @@ const qureyArgs = computed(() => {
     where.action = filters.value.action;
   }
 
-  // 日志等级过滤
-  if (filters.value.level) {
-    where.level = filters.value.level;
-  }
-
   // 用户ID过滤
   if (filters.value.userId) {
     where.userId = filters.value.userId;
@@ -147,7 +150,12 @@ const qureyArgs = computed(() => {
     }
   }
 
+  console.log(`过滤条件：${JSON.stringify(where)}`);
+
   return {
+    include: {
+      user: true,
+    },
     where,
     skip: (currentPage.value - 1) * pageSize.value,
     take: pageSize.value,
@@ -161,8 +169,22 @@ const { data: total } = useCountSystemLog(computed(() => ({ where: qureyArgs.val
 const { data: logs } = useFindManySystemLog(qureyArgs, queryOptions);
 
 const showDialog = ref(false);
+const showDetailDialog = ref(false);
 const selectedLog = ref<SystemLog | null>(null);
 const exporting = ref(false);
+
+// 格式化详情JSON
+const formattedDetail = computed(() => {
+  if (!selectedLog.value?.detail) return ''
+  try {
+    const detail = typeof selectedLog.value.detail === 'string'
+      ? JSON.parse(selectedLog.value.detail)
+      : selectedLog.value.detail
+    return JSON.stringify(detail, null, 2)
+  } catch (error) {
+    return selectedLog.value.detail
+  }
+})
 
 // 处理过滤器变化
 const handleFilterChange = (newFilters: LogFilter) => {
@@ -185,7 +207,9 @@ const handlePageSizeChange = (size: number) => {
 const handleAction = (action: string, log: SystemLog) => {
   if (action === "view") {
     selectedLog.value = log;
-    showDialog.value = true;
+    showDetailDialog.value = true;
+  } else if (action === "delete") {
+    // TODO: 处理删除逻辑
   }
 };
 
@@ -203,4 +227,35 @@ const handleExport = async () => {
     exporting.value = false;
   }
 };
+
+// 处理日志详情事件
+const handleViewLogDetail = (event: CustomEvent) => {
+  console.log('查看日志详情：', event.detail);
+  // TODO: 在这里处理日志详情的显示逻辑
+}
+
+// 处理导出日志事件
+const handleExportLog = (event: CustomEvent) => {
+  console.log('导出日志：', event.detail);
+  // TODO: 实现单条日志导出逻辑
+}
+
+// 处理删除日志事件
+const handleDeleteLog = (event: CustomEvent) => {
+  console.log('删除日志：', event.detail);
+  // TODO: 实现删除日志逻辑
+}
+
+// 监听日志相关事件
+onMounted(() => {
+  window.addEventListener('view-log-detail', handleViewLogDetail as EventListener);
+  window.addEventListener('export-log', handleExportLog as EventListener);
+  window.addEventListener('delete-log', handleDeleteLog as EventListener);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('view-log-detail', handleViewLogDetail as EventListener);
+  window.removeEventListener('export-log', handleExportLog as EventListener);
+  window.removeEventListener('delete-log', handleDeleteLog as EventListener);
+});
 </script>

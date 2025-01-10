@@ -57,6 +57,9 @@ Vue 3 and Composition API Best Practices
 Follow the official Nuxt.js and Vue.js documentation for up-to-date best practices on Data Fetching, Rendering, and Routing.
 
 I'm on the windows platform.
-使用Windows平台的路径格式。
-使用Windows平台的命令。
+
+使用Windows平台的文件路径格式
+
+使用Windows平台的命令
+
 Always use '中文'.

@@ -1,22 +1,12 @@
 import { H3Event } from 'h3'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import type { User, Role, Permission, UserRole, RolePermission } from '@prisma/client'
-import { PrismaClient } from '@prisma/client'
+import type { User, Role, Permission } from '@prisma/client'
+import prisma from '~/lib/prisma'
+import type { UserWithRelations } from '~/prisma/generated/zod'
 
-const prisma = new PrismaClient()
 export const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 export const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || '24h'
-
-interface UserWithRolesAndPermissions extends User {
-  roles: (UserRole & {
-    role: Role & {
-      permissions: (RolePermission & {
-        permission: Permission
-      })[]
-    }
-  })[]
-}
 
 interface UserWithAuth extends User {
   roleNames: string[]
@@ -24,15 +14,15 @@ interface UserWithAuth extends User {
 }
 
 export interface TokenPayload {
-  userId: number
+  userId: string
   email: string
   username: string
   roles: Array<{
-    id: number
+    id: string
     name: string
     permissions: Array<{
-      id: number
-      name: string
+      id: string
+      code: string
     }>
   }>
 }
@@ -50,18 +40,18 @@ export const hashPassword = async (password: string): Promise<string> => {
 }
 
 export const generateToken = (
-  user: UserWithRolesAndPermissions
+  user: UserWithRelations
 ): { token: { accessToken: string; refreshToken: string } } => {
   const payload: TokenPayload = {
     userId: user.id,
     email: user.email,
     username: user.username,
     roles: user.roles.map((ur) => ({
-      id: ur.role.id,
-      name: ur.role.name,
-      permissions: ur.role.permissions.map((rp) => ({
-        id: rp.permission.id,
-        name: rp.permission.name,
+      id: ur.id,
+      name: ur.name,
+      permissions: ur.permissions.map((rp) => ({
+        id: rp.id,
+        code: rp.code,
       })),
     })),
   }
@@ -123,7 +113,7 @@ export const getUserFromEvent = async (event: H3Event): Promise<UserWithAuth | n
   return {
     ...user,
     roleNames: decoded.roles.map((r) => r.name),
-    permissionNames: decoded.roles.flatMap((r) => r.permissions.map((p) => p.name)),
+    permissionNames: decoded.roles.flatMap((r) => r.permissions.map((p) => p.code)),
   }
 }
 
