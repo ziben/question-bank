@@ -188,6 +188,11 @@ const adminItems: NavigationItem[] = [
     icon: 'lucide:activity'
   },
   {
+    name: '标签分类管理',
+    path: '/admin/tag-categories',
+    icon: 'lucide:activity'
+  },
+  {
     name: '标签管理',
     path: '/admin/tags',
     icon: 'lucide:activity'

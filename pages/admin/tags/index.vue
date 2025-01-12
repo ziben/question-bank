@@ -10,9 +10,9 @@
         </p>
       </div>
     </div>
-    <MyNewDataTable :data="tags" :columns="columns" :filter_column="'name'" @action="handleAction" />
+    <MyNewDataTable :data="filteredTags" :columns="columns" :filter_column="'name'" @action="handleAction" />
     <!-- 标签表单对话框 -->
-    <Dialog :open="showTagDialog" @update:open="showTagDialog = $event">
+    <Dialog :open="dialog.isOpen" @update:open="dialog.onToggle">
       <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{{ editingTag ? '编辑标签（ID:' + editingTag.id + '）' : '新建标签' }}</DialogTitle>
@@ -82,7 +82,7 @@
           </FormField>
 
           <DialogFooter>
-            <Button type="button" variant="outline" @click="showTagDialog = false">
+            <Button type="button" variant="outline" @click="dialog.onClose">
               取消
             </Button>
             <Button type="submit" :loading="saving">
@@ -96,119 +96,123 @@
 </template>
 
 <script setup lang="ts">
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/shadcn/card'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from '@/components/shadcn/form'
-import { ScrollArea } from '@/components/shadcn/scroll-area'
-import { Separator } from '@/components/shadcn/separator'
+import { useTagManagement } from '~/composables/useTagManagement'
+import { useDialog } from '@/components/shadcn/dialog/use-dialog'
 import { useToast } from '@/components/shadcn/toast/use-toast'
 import { useConfirm } from '@/composables/useConfirm'
 import type { Tag, TagCategory } from '@prisma/client'
-import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import * as z from 'zod'
 
-import { columns } from '@/components/my/tags/columns'
-import { TagOptionalDefaultsSchema, type TagWithRelations } from '~/prisma/generated/zod'
-import type { Row } from '@tanstack/vue-table'
+interface TagWithRelations extends Tag {
+  category: TagCategory
+  parent: Tag | null
+  children: Tag[]
+}
 
-definePageMeta({
-  middleware: ['logger']
-})
+// 标签管理
+const {
+  loading,
+  currentPage,
+  pageSize,
+  total,
+  filters,
+  filteredTags,
+  handlePagination,
+  handlePageSizeChange,
+  handleFilterChange,
+  createTag,
+  updateTag,
+  deleteTag,
+  refetchTags
+} = useTagManagement()
 
-// 状态管理
-const loading = ref(false)
-const saving = ref(false)
-const showTagDialog = ref(false)
-const editingTag = ref<TagWithRelations | null>(null)
-const tags = ref<TagWithRelations[]>([])
-const categories = ref<TagCategory[]>([])
-const total = ref(0)
-const currentPage = ref(1)
-const pageSize = ref(10)
-const searchQuery = ref('')
-
+// 对话框状态
+const dialog = useDialog()
 const confirm = useConfirm()
 const { toast } = useToast()
 
 // Tag form schema
-const tagFormSchema = toTypedSchema(
-  z.object({
-    categoryId: z.number({
-      required_error: '请选择所属分类'
-    }),
-    parentId: z.number().nullable(),
-    code: z.string().min(1, {
-      message: '请输入标签代码'
-    }).max(50, {
-      message: '标签代码不能超过50个字符'
-    }),
-    name: z.string().min(1, {
-      message: '请输入标签名称'
-    }).max(50, {
-      message: '标签名称不能超过50个字符'
-    }),
-    description: z.string().max(500, {
-      message: '描述不能超过500个字符'
-    }).optional(),
-    sortOrder: z.number().int().min(0).default(0)
-  })
-)
+const tagFormSchema = z.object({
+  code: z.string()
+    .min(1, { message: '请输入标签代码' })
+    .max(50, { message: '标签代码不能超过50个字符' }),
+  name: z.string()
+    .min(1, { message: '请输入标签名称' })
+    .max(50, { message: '标签名称不能超过50个字符' }),
+  description: z.string()
+    .max(500, { message: '描述不能超过500个字符' })
+    .optional(),
+  sortOrder: z.number().int().min(0).default(0),
+  categoryId: z.number(),
+  parentId: z.number().nullable()
+})
 
 type TagFormValues = z.infer<typeof tagFormSchema>
 
 const form = useForm<TagFormValues>({
   validationSchema: tagFormSchema,
-  initialValues: {
-    categoryId: 0,
-    parentId: null,
-    code: '',
-    name: '',
-    description: '',
-    sortOrder: 0
+})
+
+// 分类列表
+const categories = ref<TagCategory[]>([])
+
+// 编辑的标签
+const editingTag = ref<TagWithRelations | null>(null)
+
+// 表格列定义
+const columns = [
+  {
+    accessorKey: 'code',
+    header: '标签代码'
+  },
+  {
+    accessorKey: 'name',
+    header: '标签名称'
+  },
+  {
+    accessorKey: 'category.name',
+    header: '所属分类'
+  },
+  {
+    accessorKey: 'parent.name',
+    header: '父标签'
+  },
+  {
+    accessorKey: 'description',
+    header: '描述'
+  },
+  {
+    accessorKey: 'sortOrder',
+    header: '排序'
+  },
+  {
+    id: 'actions',
+    cell: ({ row }: any) => {
+      const tag = row.original
+      return (
+        <div class="flex items-center">
+          <Button variant="ghost" size="icon" onClick={() => handleAction('edit', tag)}>
+            <PencilIcon class="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => handleAction('delete', tag)}>
+            <TrashIcon class="h-4 w-4" />
+          </Button>
+        </div>
+      )
+    }
   }
-})
-
-// 分类选项
-const categoryOptions = computed(() => {
-  return categories.value.map(category => ({
-    label: category.name,
-    value: category.id
-  }))
-})
-
-// 标签选项(父标签)
-const tagOptions = computed(() => {
-  return tags.value
-    .filter(tag => tag.id !== editingTag.value?.id)
-    .map(tag => ({
-      label: tag.name,
-      value: tag.id
-    }))
-})
+]
 
 // 处理表格操作
-const handleAction = async (action: string, ...args: any[]) => {
+const handleAction = async (action: string, tag: TagWithRelations) => {
   switch (action) {
     case 'edit':
-      openTagDialog(args[0])
+      openTagDialog(tag)
       break
     case 'delete':
-      await deleteTag(args[0])
+      await deleteTagConfirm(tag)
       break
   }
 }
@@ -218,148 +222,77 @@ const openTagDialog = (tag: TagWithRelations | null = null) => {
   editingTag.value = tag
   if (tag) {
     form.setValues({
-      categoryId: tag.categoryId,
-      parentId: tag.parentId,
       code: tag.code,
       name: tag.name,
       description: tag.description || '',
-      sortOrder: tag.sortOrder
+      sortOrder: tag.sortOrder,
+      categoryId: tag.categoryId,
+      parentId: tag.parentId
     })
   } else {
     form.resetForm()
   }
-  showTagDialog.value = true
-}
-
-// 获取标签列表
-const fetchTags = async () => {
-  try {
-    loading.value = true
-    const response = await $fetch('/api/admin/tags', {
-      params: {
-        page: currentPage.value,
-        pageSize: pageSize.value,
-        search: searchQuery.value
-      }
-    })
-    tags.value = response.data
-    total.value = response.pagination.total
-  } catch (error) {
-    toast({
-      title: '错误',
-      description: '获取标签列表失败',
-      variant: 'destructive'
-    })
-    console.error('获取标签列表失败:', error)
-  } finally {
-    loading.value = false
-  }
+  dialog.onOpen()
 }
 
 // 获取分类列表
 const fetchCategories = async () => {
   try {
-    const response = await $fetch('/api/admin/tag-categories')
-    categories.value = response.data
-  } catch (error) {
+    const response = await $fetch('/api/categories')
+    categories.value = response
+  } catch (error: any) {
     toast({
-      title: '错误',
-      description: '获取分类列表失败',
+      title: '获取分类列表失败',
+      description: error.message,
       variant: 'destructive'
     })
-    console.error('获取分类列表失败:', error)
   }
 }
 
-// 删除标签
-const deleteTag = async (tag: Tag) => {
+// 删除标签确认
+const deleteTagConfirm = async (tag: Tag) => {
   const confirmed = await confirm.open({
     title: '确认删除',
-    description: `是否确认删除标签 "${tag.name}"？此操作不可恢复。`
+    description: `确定要删除标签 "${tag.name}" 吗？`
   })
 
-  if (!confirmed) return
-
-  try {
-    await $fetch(`/api/admin/tags/${tag.id}`, {
-      method: 'DELETE'
-    })
-    toast({
-      title: '成功',
-      description: '删除标签成功'
-    })
-    await fetchTags()
-  } catch (error) {
-    toast({
-      title: '错误',
-      description: '删除标签失败',
-      variant: 'destructive'
-    })
-    console.error('删除标签失败:', error)
+  if (confirmed) {
+    try {
+      await deleteTag(tag.id)
+      await refetchTags()
+    } catch (error) {
+      // 错误已在 deleteTag 中处理
+    }
   }
 }
 
 // 表单提交处理
-const onSubmit = async (e: Event) => {
-  e.preventDefault()
-  await saveTag(form.values)
+const onSubmit = (values: TagFormValues) => {
+  saveTag(values)
 }
 
 // 保存标签
 const saveTag = async (values: TagFormValues) => {
-  saving.value = true
   try {
     if (editingTag.value) {
-      await $fetch(`/api/admin/tags/${editingTag.value.id}`, {
-        method: 'PUT',
-        body: values
-      })
-      toast({
-        title: '成功',
-        description: '更新标签成功'
+      await updateTag({
+        where: { id: editingTag.value.id },
+        data: values
       })
     } else {
-      await $fetch('/api/admin/tags', {
-        method: 'POST',
-        body: values
-      })
-      toast({
-        title: '成功',
-        description: '创建标签成功'
+      await createTag({
+        data: values
       })
     }
-    showTagDialog.value = false
-    await fetchTags()
+    
+    dialog.onClose()
+    await refetchTags()
   } catch (error) {
-    toast({
-      title: '错误',
-      description: editingTag.value ? '更新标签失败' : '创建标签失败',
-      variant: 'destructive'
-    })
-    console.error('保存标签失败:', error)
-  } finally {
-    saving.value = false
+    // 错误已在 createTag/updateTag 中处理
   }
 }
 
-// 分页处理
-const onPageChange = (page: number) => {
-  currentPage.value = page
-}
-
-const onPageSizeChange = (size: number) => {
-  pageSize.value = size
-  currentPage.value = 1
-}
-
-// 监听分页和搜索变化
-watch([currentPage, pageSize, searchQuery], () => {
-  fetchTags()
-})
-
-// 初始化
 onMounted(() => {
-  fetchTags()
   fetchCategories()
 })
 </script>
